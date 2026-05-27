@@ -89,139 +89,19 @@ function widget_player_radio_kisskiss_shortcode( $atts ) {
 	// Genera l'HTML pixel perfect dal mockup
 	ob_start();
 	?>
-	<!-- Audio Player Element -->
-	<audio id="kisskiss-audio-player" auto-play crossorigin="anonymous">
-		<source src="https://kisskiss.fluidstream.eu/KissKiss.aac" type="audio/aac">
-		Il tuo browser non supporta l'elemento audio.
-	</audio>
+	<?php include plugin_dir_path( __FILE__ ) . 'includes/audio-player.php'; ?>
 
 	<div class="wp-block-kisskiss-player">
 		<!-- Main Content: Live Stream Player -->
 		<main class="kisskiss-player-main">
 			<div class="kisskiss-player-container">
-				<!-- Left: Cover Art / Album Image -->
-				<div class="kisskiss-cover-container">
-					<div class="kisskiss-cover-inner">
-						<img
-							alt="copertina canzone"
-							class="kisskiss-cover-img"
-							id="main-cover"
-							src="<?php echo esc_url( $plugin_url . 'logo.png' ); ?>"
-						/>
-						<!-- Content Overlay for dynamic cycling mention -->
-						<div class="kisskiss-cover-overlay">
-							<p id="overlay-current-program-title">Current program: Night Drive Sessions</p>
-						</div>
-					</div>
-
-					<!-- Floating Decorative Element 
-					<div class="kisskiss-badge">
-						<span class="kisskiss-badge-icon">🎵</span>
-						<span class="kisskiss-badge-text">PREMIUM AUDIO</span>
-					</div>
-					-->
-				</div>
-
-				<!-- Right: Info & Controls -->
-				<div class="kisskiss-info">
-					<div class="kisskiss-live-indicator">
-						<div class="kisskiss-live-status">
-							<div class="kisskiss-live-dot"></div>
-							<span class="kisskiss-live-text">In Onda Ora</span>
-						</div>
-						<div class="kisskiss-program">
-							<span id="program-title" class="kisskiss-program-name">Radio Kiss Kiss - Play everywhere!</span>
-							<span id="program-time" class="kisskiss-program-time"></span>
-							<span id="song-artist" class="kisskiss-song-artis-mobile"></span>
-						</div>
-					</div>
-
-					<div class="kisskiss-titles">
-						<h1 id="song-title" class="kisskiss-artist"></h1>
-						<h2 id="song-artist-2" class="kisskiss-song"></h2>
-					</div>
-
-					<div class="kisskiss-divider hide-on-mobile"></div>
-
-					<!-- Minimalist Controls -->
-					<div class="kisskiss-controls">
-						<div class="kisskiss-controls-row">
-							<button class="kisskiss-btn kisskiss-btn-primary hide-on-mobile" id="select-radio-btn">								
-								<?php
-									echo '
-										<img class="kisskiss-icon-style" src="' . esc_url( $plugin_url . 'radio.svg' ) . '" alt="Select Radio Icon" class="kisskiss-radio-icon" />
-									';
-								?>
-								</span>
-								<span>Seleziona Radio</span>
-							</button>
-							<button class="kisskiss-btn kisskiss-btn-play hide-on-mobile" id="play-pause">								
-								<?php
-									echo '
-										<img class="kisskiss-icon-style" src="' . esc_url( $plugin_url . 'play.svg' ) . '" alt="Play Icon" class="kisskiss-play-icon-img" />
-									';
-								?>								
-							</button>
-							<div class="kisskiss-mobile-radio-play">
-								<button class="kisskiss-btn-primary-mobile" id="select-radio-btn">								
-									<?php
-										echo '
-											<img class="kisskiss-icon-style" src="' . esc_url( $plugin_url . 'radio-blue.svg' ) . '" alt="Select Radio Icon" class="kisskiss-radio-icon" />
-										';
-									?>								
-									<span class="kisskiss-btn-primary-mobile-text">SELEZIONA RADIO</span>
-								</button>
-								<div class="kisskiss-mobile-play-share">
-									<button class="kisskiss-btn kisskiss-btn-play" id="play-pause">
-									
-										<?php
-											echo '
-												<img class="kisskiss-icon-style" src="' . esc_url( $plugin_url . 'play.svg' ) . '" alt="Play Icon" class="kisskiss-play-icon-img" />
-											';
-										?>
-									
-									</button>
-									<button style="background:none !important" class="kisskiss-btn kisskiss-btn-share" id="share-btn">
-									
-										<?php
-											echo '
-												<img class="kisskiss-icon-style" src="' . esc_url( $plugin_url . 'share.svg' ) . '" alt="Share Icon" class="kisskiss-share-icon-img" />
-											';
-										?>
-									
-									</button>
-								</div>							
-							</div>
-							<button style="background:none !important" class="kisskiss-btn kisskiss-btn-share hide-on-mobile" id="share-btn-desktop">							
-								<?php
-									echo '
-										<img class="kisskiss-icon-style" src="' . esc_url( $plugin_url . 'share.svg' ) . '" alt="Share Icon" class="kisskiss-share-icon-img" />
-									';
-								?>								
-							</button>
-						</div>
-
-						<div class="kisskiss-volume hide-on-mobile">
-							<span class="kisskiss-volume-icon">
-								<?php
-									echo '
-										<img class="kisskiss-icon-style" src="' . esc_url( $plugin_url . 'volume.svg' ) . '" alt="Volume Icon" class="kisskiss-volume-icon-img" />
-									';
-								?>
-							</span>
-							<input
-								class="kisskiss-volume-slider"
-								max="100"
-								min="0"
-								type="range"
-								value="80"
-							/>
-						</div>
-					</div>
-				</div>
+				<?php include plugin_dir_path( __FILE__ ) . 'includes/cover-section.php'; ?>
+				<?php include plugin_dir_path( __FILE__ ) . 'includes/info-section.php'; ?>
 			</div>
 		</main>
 	</div>
+
+	<?php include plugin_dir_path( __FILE__ ) . 'includes/radio-modal.php'; ?>
 	<?php
 	return ob_get_clean();
 }

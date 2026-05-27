@@ -1,0 +1,42 @@
+[
+    {
+        "name": "KissKiss",
+        "img": "https://kisskiss.it/wp-content/uploads/2026/01/logo_radio-300x233.png",
+        "url": "https://kisskiss.fluidstream.eu/KissKiss.aac?t=1779893007939"
+    },
+    {
+        "name": "Soft",
+        "img": "https://kisskiss.it/wp-content/uploads/2022/11/soft-2.png",
+        "url": "https://kk.fluidstream.eu/kk_soft.mp3"
+    },
+    {
+        "name": "Lounge",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/lounge.png",
+        "url": "https://kk.fluidstream.eu/kk_history_lounge.mp3?FLID=1"
+    },
+    {
+        "name": "Disco Party",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/discoparty-2.png",
+        "url": "https://kk.fluidstream.eu/kk_discoparty.mp3"
+    },
+    {
+        "name": "La Notte Vola",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/lanottevola-4.png",
+        "url": "https://kk.fluidstream.eu/kk_notte.mp3"
+    },
+    {
+        "name": "History",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/history-1.png",
+        "url": "https://kk.fluidstream.eu/kk_history.mp3"
+    },
+    {
+        "name": "KissKiss +1",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/piu1.png",
+        "url": "https://kk.fluidstream.eu/KissKiss1.mp3"
+    },
+    {
+        "name": "Love",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/LOVE.png",
+        "url": "https://kk.fluidstream.eu/kk_sanvalentino.mp3"
+    }
+]
