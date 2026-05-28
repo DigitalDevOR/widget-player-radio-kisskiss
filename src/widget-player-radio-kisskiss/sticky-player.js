@@ -4,6 +4,18 @@
  * and updates UI accordingly
  */
 
+function setImageSrcIfChanged(imageElement, nextSrc) {
+	if (!imageElement || !nextSrc) return false;
+
+	const currentSrc = imageElement.getAttribute('src') || imageElement.currentSrc || imageElement.src || '';
+	if (currentSrc === nextSrc) {
+		return false;
+	}
+
+	imageElement.src = nextSrc;
+	return true;
+}
+
 class KisskissStickyPlayer {
 	constructor() {
 		this.mainAudioPlayer = null;
@@ -64,7 +76,7 @@ class KisskissStickyPlayer {
 		// Listen for metadata update from view.js
 		document.addEventListener('kisskiss-metadata-update', (e) => {
 			console.log('[STICKY-PLAYER] Metadata update event:', e.detail.data);
-			this.updateMetadata(e.detail.data);
+			this.updateMetadata(e.detail.data, e.detail);
 		});
 
 		// Attach local button listeners
@@ -187,7 +199,7 @@ class KisskissStickyPlayer {
 		}
 	}
 
-	updateMetadata(data) {
+	updateMetadata(data, detail = {}) {
 		// Update covers
 		let coverSrc = data.trackInfo?.artwork;
 		if (!coverSrc || coverSrc.trim().toLowerCase() === 'null') {
@@ -199,8 +211,33 @@ class KisskissStickyPlayer {
 		const desktopCover = document.getElementById('sticky-player-cover-desktop');
 		const mobileCover = document.getElementById('sticky-player-cover-mobile');
 		
-		if (desktopCover) desktopCover.src = coverSrc;
-		if (mobileCover) mobileCover.src = coverSrc;
+		if (desktopCover) setImageSrcIfChanged(desktopCover, coverSrc);
+		if (mobileCover) setImageSrcIfChanged(mobileCover, coverSrc);
+
+		const desktopProgramCover = document.getElementById('sticky-program-cover-desktop');
+		const mobileProgramCover = document.getElementById('sticky-program-cover-mobile');
+		const programCoverVisible = !!detail.programCoverVisible;
+		const programCoverSrc = detail.programCoverSrc || '';
+		if (desktopProgramCover) {
+			if (programCoverVisible) {
+				if (programCoverSrc) {
+					setImageSrcIfChanged(desktopProgramCover, programCoverSrc);
+				}
+				desktopProgramCover.classList.add('is-visible');
+			} else {
+				desktopProgramCover.classList.remove('is-visible');
+			}
+		}
+		if (mobileProgramCover) {
+			if (programCoverVisible) {
+				if (programCoverSrc) {
+					setImageSrcIfChanged(mobileProgramCover, programCoverSrc);
+				}
+				mobileProgramCover.classList.add('is-visible');
+			} else {
+				mobileProgramCover.classList.remove('is-visible');
+			}
+		}
 
 		// Update show title
 		const showTitle = data.show?.title || 'Loading...';
@@ -218,7 +255,7 @@ class KisskissStickyPlayer {
 		const desktopSongInfo = document.getElementById('sticky-song-info-desktop');
 		if (desktopSongInfo) desktopSongInfo.textContent = songInfo;
 
-		console.log('[STICKY-PLAYER] Metadata updated:', { showTitle, songInfo, cover: coverSrc });
+		console.log('[STICKY-PLAYER] Metadata updated:', { showTitle, songInfo, cover: coverSrc, programCoverVisible, programCoverSrc });
 	}
 }
 

@@ -2,41 +2,51 @@
     {
         "name": "KissKiss",
         "img": "https://kisskiss.it/wp-content/uploads/2026/01/logo_radio-300x233.png",
-        "url": "https://kisskiss.fluidstream.eu/KissKiss.aac?t=1779893007939"
+        "url": "https://kisskiss.fluidstream.eu/KissKiss.aac?t=1779893007939",
+        "pollingApiEndpoint": "https://api.kisskiss.it/nowplaying",
+        "default": true
     },
     {
         "name": "Soft",
         "img": "https://kisskiss.it/wp-content/uploads/2022/11/soft-2.png",
-        "url": "https://kk.fluidstream.eu/kk_soft.mp3"
+        "url": "https://kk.fluidstream.eu/kk_soft.mp3",
+        "pollingApiEndpoint": "",
+        "default": false
     },
     {
         "name": "Lounge",
         "img": "https://kisskiss.it/wp-content/uploads/2021/03/lounge.png",
-        "url": "https://kk.fluidstream.eu/kk_history_lounge.mp3?FLID=1"
+        "url": "https://kk.fluidstream.eu/kk_history_lounge.mp3?FLID=1",
+        "pollingApiEndpoint": ""
     },
     {
         "name": "Disco Party",
         "img": "https://kisskiss.it/wp-content/uploads/2021/03/discoparty-2.png",
-        "url": "https://kk.fluidstream.eu/kk_discoparty.mp3"
+        "url": "https://kk.fluidstream.eu/kk_discoparty.mp3",
+        "pollingApiEndpoint": ""
     },
     {
         "name": "La Notte Vola",
         "img": "https://kisskiss.it/wp-content/uploads/2021/03/lanottevola-4.png",
-        "url": "https://kk.fluidstream.eu/kk_notte.mp3"
+        "url": "https://kk.fluidstream.eu/kk_notte.mp3",
+        "pollingApiEndpoint": ""
     },
     {
         "name": "History",
         "img": "https://kisskiss.it/wp-content/uploads/2021/03/history-1.png",
-        "url": "https://kk.fluidstream.eu/kk_history.mp3"
+        "url": "https://kk.fluidstream.eu/kk_history.mp3",
+        "pollingApiEndpoint": ""
     },
     {
         "name": "KissKiss +1",
         "img": "https://kisskiss.it/wp-content/uploads/2021/03/piu1.png",
-        "url": "https://kk.fluidstream.eu/KissKiss1.mp3"
+        "url": "https://kk.fluidstream.eu/KissKiss1.mp3",
+        "pollingApiEndpoint": ""
     },
     {
         "name": "Love",
         "img": "https://kisskiss.it/wp-content/uploads/2021/03/LOVE.png",
-        "url": "https://kk.fluidstream.eu/kk_sanvalentino.mp3"
+        "url": "https://kk.fluidstream.eu/kk_sanvalentino.mp3",
+        "pollingApiEndpoint": ""
     }
 ]

@@ -24,6 +24,13 @@ if ( ! isset( $plugin_url ) ) {
 			id="main-cover"
 			src="<?php echo esc_url( $plugin_url . 'logo.png' ); ?>"
 		/>
+		<img
+			alt="copertina programma"
+			class="kisskiss-program-cover-img"
+			id="program-cover"
+			aria-hidden="true"
+			src=""
+		/>
 		<!-- Content Overlay for dynamic cycling mention -->
 		<div class="kisskiss-cover-overlay">
 			<p id="overlay-current-program-title"></p>

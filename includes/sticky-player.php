@@ -26,6 +26,12 @@ require_once plugin_dir_path( __FILE__ ) . 'globals.php';
 						alt="Album Cover"
 						src=""
 					/>
+					<img
+						id="sticky-program-cover-desktop"
+						alt="Program Cover"
+						aria-hidden="true"
+						src=""
+					/>
 					<div class="kisskiss-sticky-player-desktop__live-dot hidden" id="sticky-live-dot-desktop"></div>
 				</div>
 				<div class="kisskiss-sticky-player-desktop__metadata">
@@ -75,6 +81,12 @@ require_once plugin_dir_path( __FILE__ ) . 'globals.php';
 							id="sticky-player-cover-mobile"
 							src=""
 							alt="Album Cover"
+						/>
+						<img
+							id="sticky-program-cover-mobile"
+							aria-hidden="true"
+							src=""
+							alt="Program Cover"
 						/>
 						<div class="kisskiss-sticky-player-mobile__live-dot hidden" id="sticky-live-dot-mobile"></div>
 					</div>

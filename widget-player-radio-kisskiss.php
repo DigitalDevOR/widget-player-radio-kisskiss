@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Carica le costanti globali
 require_once plugin_dir_path( __FILE__ ) . 'includes/globals.php';
 
+// Carica il menu amministrativo
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-admin-menu.php';
+
 /**
  * Registers the block(s) metadata from the `blocks-manifest.php` and registers the block type(s)
  * based on the registered block metadata. Behind the scenes, it registers also all assets so they can be enqueued

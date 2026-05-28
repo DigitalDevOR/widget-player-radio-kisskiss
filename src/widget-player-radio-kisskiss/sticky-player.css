@@ -3,6 +3,18 @@
  * CSS standard (no Tailwind)
  * Minimal player bar shown when main player is not in viewport
  */
+
+/* Add padding to body to prevent content from being hidden under sticky player */
+body {
+	padding-bottom: 100px; /* Desktop sticky player height: 96px + borders + padding */
+}
+
+@media (max-width: 1023px) {
+	body {
+		padding-bottom: 80px; /* Mobile sticky player height */
+	}
+}
+
 [type=button]:focus,[type=button]:hover,[type=submit]:focus,[type=submit]:hover,button:focus,button:hover {
     background-color: #0024c1 !important;
     color: #fff !important;
@@ -27,7 +39,7 @@
 	bottom: 0;
 	left: 0;
 	width: 100%;
-	z-index: 40;
+	z-index: 9999;
 	background-color: rgba(251, 248, 255, 0.95);
 	-webkit-backdrop-filter: blur(12px);
 	backdrop-filter: blur(12px);
@@ -89,10 +101,29 @@
 }
 
 .kisskiss-sticky-player-desktop__cover img {
+	position: absolute;
+	inset: 0;
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 	transition: transform 0.3s ease;
+}
+
+#sticky-program-cover-desktop,
+#sticky-program-cover-mobile {
+	display: none;
+	pointer-events: none;
+	z-index: 2;
+}
+
+#sticky-program-cover-desktop.is-visible,
+#sticky-program-cover-mobile.is-visible {
+	display: block;
+}
+
+#sticky-player-cover-desktop,
+#sticky-player-cover-mobile {
+	z-index: 1;
 }
 
 .kisskiss-sticky-player-desktop__cover:hover img {
@@ -339,7 +370,7 @@
 	bottom: 0;
 	left: 0;
 	right: 0;
-	z-index: 40;
+	z-index: 9999;
 	padding: 4px;
 	padding-bottom: 4px;
 	padding-top: 0;
@@ -388,6 +419,7 @@
 }
 
 .kisskiss-sticky-player-mobile__cover {
+    background-color: #fff;
 	position: relative;
 	flex-shrink: 0;
 	width: 48px;
@@ -399,6 +431,8 @@
 }
 
 .kisskiss-sticky-player-mobile__cover img {
+	position: absolute;
+	inset: 0;
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
