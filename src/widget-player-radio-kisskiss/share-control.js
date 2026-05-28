@@ -1,123 +1,182 @@
 /**
  * Share Control Script
- * Permette di condividere l'URL della pagina su varie piattaforme
+ * Gestisce l'apertura del modale di condivisione con drag to dismiss su mobile
  */
 
 document.addEventListener('DOMContentLoaded', function() {
     const shareBtnDesktop = document.getElementById('share-btn-desktop');
     const shareBtn = document.getElementById('share-btn');
+    const shareModal = document.getElementById('kisskiss-share-modal');
+    const shareOptionsContainer = document.getElementById('kisskiss-share-options');
+    const shareCloseBtn = document.getElementById('kisskiss-share-modal-close');
   
-  if (!shareBtn || !shareBtnDesktop) return;
+    if (!shareBtn || !shareBtnDesktop || !shareModal) return;
 
-    shareBtnDesktop.addEventListener('click', function(e) {
-        e.preventDefault();
-        openShareDialog();
-    });
+    // Funzione per costruire le opzioni di condivisione
+    function renderShareOptions() {
+        const pageUrl = window.location.href;
+        const pageTitle = document.title;
+        const pluginUrl = window.kisskissData.pluginUrl;
 
-    shareBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        openShareDialog();
-    });
-
-  function openShareDialog() {
-    const pageUrl = window.location.href;
-    const pageTitle = document.title;
-    const pluginUrl = window.kisskissData.pluginUrl;
-
-    // Crea il dialog HTML
-    const dialog = document.createElement('div');
-    dialog.className = 'kisskiss-share-dialog-overlay';
-    dialog.innerHTML = `
-      <div class="kisskiss-share-dialog">
-        <div class="kisskiss-share-header">
-          <h3>Condividi</h3>
-          <button class="kisskiss-share-close">&times;</button>
-        </div>
-        
-        <div class="kisskiss-share-options">
+        shareOptionsContainer.innerHTML = `
           <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}" 
-             target="_blank" class="kisskiss-share-option kisskiss-share-facebook">
+             target="_blank" class="kisskiss-share-option kisskiss-share-facebook" title="Condividi su Facebook">
             <img src="${pluginUrl}facebookIcon.svg" alt="Facebook" class="kisskiss-share-icon-img" />
             <span>Facebook</span>
           </a>
           
           <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(pageTitle)}" 
-             target="_blank" class="kisskiss-share-option kisskiss-share-twitter">
+             target="_blank" class="kisskiss-share-option kisskiss-share-twitter" title="Condividi su X">
             <img src="${pluginUrl}xIcon.svg" alt="X" class="kisskiss-share-icon-img" />
             <span>X</span>
           </a>
           
           <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(pageTitle + ' ' + pageUrl)}" 
-             target="_blank" class="kisskiss-share-option kisskiss-share-whatsapp">
+             target="_blank" class="kisskiss-share-option kisskiss-share-whatsapp" title="Condividi su WhatsApp">
             <img src="${pluginUrl}whatsappIcon.svg" alt="WhatsApp" class="kisskiss-share-icon-img" />
             <span>WhatsApp</span>
           </a>
           
           <a href="https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(pageTitle)}" 
-             target="_blank" class="kisskiss-share-option kisskiss-share-telegram">
+             target="_blank" class="kisskiss-share-option kisskiss-share-telegram" title="Condividi su Telegram">
             <img src="${pluginUrl}telegramIcon.svg" alt="Telegram" class="kisskiss-share-icon-img" />
             <span>Telegram</span>
           </a>
           
-          <button class="kisskiss-share-option kisskiss-share-copy" data-url="${pageUrl}">
+          <button class="kisskiss-share-option kisskiss-share-copy" data-url="${pageUrl}" title="Copia link">
             <span class="kisskiss-share-icon">📋</span>
             <span>Copia link</span>
           </button>
-        </div>
-      </div>
-    `;
+        `;
 
-    document.body.appendChild(dialog);
+        // Aggiungi event listener al pulsante copia
+        const copyBtn = shareOptionsContainer.querySelector('.kisskiss-share-copy');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', handleCopyLink);
+        }
+    }
 
-    // Blocca lo scroll del body
-    document.body.style.overflow = 'hidden';
+    function handleCopyLink(e) {
+        e.preventDefault();
+        const url = this.getAttribute('data-url');
+        
+        navigator.clipboard.writeText(url).then(() => {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<span class="kisskiss-share-icon">✓</span><span>Copiato!</span>';
+            
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        }).catch(() => {
+            // Fallback per browser vecchi
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            const originalText = this.innerHTML;
+            this.innerHTML = '<span class="kisskiss-share-icon">✓</span><span>Copiato!</span>';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+    }
 
-    // Close button
-    const closeBtn = dialog.querySelector('.kisskiss-share-close');
-    closeBtn.addEventListener('click', function() {
-      // Sblocca lo scroll
-      document.body.style.overflow = '';
-      dialog.remove();
-    });
+    function openShareModal() {
+        renderShareOptions();
+        shareModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
 
-    // Chiudi al click fuori dal dialog
-    dialog.addEventListener('click', function(e) {
-      if (e.target === dialog) {
-        // Sblocca lo scroll
+    function closeShareModal() {
+        shareModal.classList.add('hidden');
         document.body.style.overflow = '';
-        dialog.remove();
-      }
+    }
+
+    // Event listeners per apertura
+    shareBtnDesktop.addEventListener('click', function(e) {
+        e.preventDefault();
+        openShareModal();
     });
 
-    // Copia link
-    const copyBtn = dialog.querySelector('.kisskiss-share-copy');
-    copyBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const url = this.getAttribute('data-url');
-      
-      navigator.clipboard.writeText(url).then(() => {
-        const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<span class="kisskiss-share-icon">✓</span><span>Copiato!</span>';
-        
-        setTimeout(() => {
-          copyBtn.innerHTML = originalText;
-        }, 2000);
-      }).catch(() => {
-        // Fallback per browser vecchi
-        const textarea = document.createElement('textarea');
-        textarea.value = url;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        
-        copyBtn.innerHTML = '<span class="kisskiss-share-icon">✓</span><span>Copiato!</span>';
-        setTimeout(() => {
-          copyBtn.innerHTML = originalText;
-        }, 2000);
-      });
+    shareBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        openShareModal();
     });
-  }
 
-  console.log('Share Control pronto');
+    // Event listener per chiusura pulsante X
+    shareCloseBtn.addEventListener('click', closeShareModal);
+
+    // Chiudi al click fuori dal modal (overlay)
+    shareModal.addEventListener('click', (e) => {
+        if (e.target === shareModal) {
+            closeShareModal();
+        }
+    });
+
+    // ========== DRAG TO DISMISS PER MOBILE ==========
+    const modalContainer = shareModal.querySelector('.kisskiss-modal-container');
+    const dragHandle = shareModal.querySelector('.kisskiss-drag-handle');
+    let touchStartY = 0;
+    let touchCurrentY = 0;
+    let isDragging = false;
+    const dragThreshold = 100; // pixel necessari per chiudere
+
+    console.log('[SHARE-DRAG] Drag handle trovato:', !!dragHandle, '[SHARE-DRAG] Modal container trovato:', !!modalContainer);
+
+    if (dragHandle) {
+        dragHandle.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+            isDragging = true;
+            console.log('[SHARE-DRAG] Touch start:', touchStartY);
+        }, false);
+    }
+
+    if (modalContainer) {
+        modalContainer.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            touchCurrentY = e.touches[0].clientY;
+            const drag = touchCurrentY - touchStartY;
+
+            console.log('[SHARE-DRAG] Dragging:', drag, 'px');
+
+            if (drag > 0) {
+                e.preventDefault();
+                modalContainer.style.transform = `translateY(${drag}px)`;
+                modalContainer.style.transition = 'none';
+            }
+        }, { passive: false });
+
+        modalContainer.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            const drag = touchCurrentY - touchStartY;
+            console.log('[SHARE-DRAG] Touch end - drag distance:', drag, 'threshold:', dragThreshold);
+
+            modalContainer.style.transition = 'transform 0.3s ease';
+
+            if (drag > dragThreshold) {
+                console.log('[SHARE-DRAG] Closing modal');
+                // Chiudi il modale
+                modalContainer.style.transform = 'translateY(100%)';
+                setTimeout(() => {
+                    closeShareModal();
+                    modalContainer.style.transform = 'translateY(0)';
+                    modalContainer.style.transition = 'none';
+                }, 300);
+            } else {
+                console.log('[SHARE-DRAG] Returning to original position');
+                // Ritorna alla posizione originale
+                modalContainer.style.transform = 'translateY(0)';
+                setTimeout(() => {
+                    modalContainer.style.transition = 'none';
+                }, 300);
+            }
+        }, false);
+    }
+
+    console.log('Share Control pronto');
 });

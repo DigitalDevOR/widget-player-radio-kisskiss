@@ -1,0 +1,81 @@
+/**
+ * Sticky Player Styles
+ * Minimal player bar shown when main player is not in viewport
+ */
+
+.kisskiss-sticky-player-wrapper {
+	&.hidden {
+		display: none !important;
+	}
+}
+
+/* Desktop Version */
+.kisskiss-sticky-player-desktop {
+	background-color: rgba(255, 255, 255, 0.95);
+	-webkit-backdrop-filter: blur(12px);
+	backdrop-filter: blur(12px);
+
+	img {
+		width: 56px;
+		height: 56px;
+
+		@media (min-width: 769px) {
+			width: 64px;
+			height: 64px;
+		}
+	}
+
+	button {
+		&:active {
+			transform: scale(0.95);
+		}
+	}
+
+	&.hidden {
+		display: none !important;
+	}
+}
+
+/* Mobile Version */
+.kisskiss-sticky-player-mobile {
+	@media (min-width: 1024px) {
+		display: none !important;
+	}
+
+	&.hidden {
+		display: none !important;
+	}
+
+	.pulse-animation {
+		animation: pulse-mobile 2s infinite;
+	}
+
+	@keyframes pulse-mobile {
+		0% {
+			transform: scale(1);
+			opacity: 1;
+		}
+		50% {
+			transform: scale(1.2);
+			opacity: 0.7;
+		}
+		100% {
+			transform: scale(1);
+			opacity: 1;
+		}
+	}
+}
+
+/* Live Indicator Pulse Animation */
+.live-pulse {
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.4;
+	}
+}

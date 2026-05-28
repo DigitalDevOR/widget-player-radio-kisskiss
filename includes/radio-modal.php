@@ -9,6 +9,9 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+require_once plugin_dir_path( __FILE__ ) . 'globals.php';
+
 ?>
 <!-- Modal per selezione radio -->
 <div id="kisskiss-radio-modal" class="kisskiss-modal-overlay hidden">
@@ -19,10 +22,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="kisskiss-modal-header">
 			<h2>Seleziona Radio</h2>
 			<button class="kisskiss-modal-close" id="kisskiss-modal-close">
-				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<line x1="18" y1="6" x2="6" y2="18"></line>
-					<line x1="6" y1="6" x2="18" y2="18"></line>
-				</svg>
+				<?php
+					echo '
+						<img class="kisskiss-icon-style" src="' . esc_url( KISSKISS_ASSETS_URL . 'close.svg' ) . '" alt="Close Icon" class="kisskiss-close-icon" width="24px" />
+					';
+				?>
 			</button>
 		</div>
 		<!-- Modal Content -->

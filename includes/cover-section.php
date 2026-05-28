@@ -26,7 +26,7 @@ if ( ! isset( $plugin_url ) ) {
 		/>
 		<!-- Content Overlay for dynamic cycling mention -->
 		<div class="kisskiss-cover-overlay">
-			<p id="overlay-current-program-title">Current program: Night Drive Sessions</p>
+			<p id="overlay-current-program-title"></p>
 		</div>
 	</div>
 </div>

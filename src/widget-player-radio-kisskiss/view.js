@@ -93,12 +93,18 @@ function initializeAudioPlayer() {
 		console.log("[AUDIO] Player avviato");
 		updatePlayIcon(true);
 		playPauseButtons.forEach(btn => btn.classList.add("playing"));
+		
+		// Dispatch custom event per sticky player
+		document.dispatchEvent(new CustomEvent('kisskiss-play'));
 	});
 
 	audioPlayer.addEventListener("pause", function() {
 		console.log("[AUDIO] Player fermato");
 		updatePlayIcon(false);
 		playPauseButtons.forEach(btn => btn.classList.remove("playing"));
+		
+		// Dispatch custom event per sticky player
+		document.dispatchEvent(new CustomEvent('kisskiss-pause'));
 	});
 
 	audioPlayer.addEventListener("error", function(e) {
@@ -111,6 +117,11 @@ function initializeAudioPlayer() {
 			const volume = this.value / 100;
 			audioPlayer.volume = volume;
 			console.log("[AUDIO] Volume impostato a:", volume);
+			
+			// Dispatch custom event per sticky player
+			document.dispatchEvent(new CustomEvent('kisskiss-volume-change', {
+				detail: { volume: this.value }
+			}));
 		});
 
 		// Imposta volume iniziale
@@ -127,6 +138,10 @@ function initializeAudioPlayer() {
 		updatePlayIcon(true);
 		// Aggiungi classe playing ai pulsanti
 		playPauseButtons.forEach(btn => btn.classList.add("playing"));
+		
+		// Dispatch custom event per sticky player all'autoplay
+		document.dispatchEvent(new CustomEvent('kisskiss-play'));
+		console.log("[AUDIO] Evento kisskiss-play dispatchato");
 	}).catch(err => {
 		console.error("[AUDIO] Errore durante auto-play:", err);
 	});
@@ -189,6 +204,12 @@ function initializePolling() {
 				console.log("[POLLING] Dati modificati, aggiornamento widget...");
 				updateWidget(data);
 				lastPollingData = data;
+				
+				// Dispatch custom event per sticky player con i dati aggiornati
+				document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
+					detail: { data: data }
+				}));
+				console.log("[POLLING] Metadata update event dispatched");
 			} else {
 				console.log("[POLLING] Nessuna modifica ai dati");
 			}
@@ -348,8 +369,8 @@ function initializeRadioModal() {
 	
 	let selectedStationIndex = null;
 	
-	// Carica le stazioni nel grid
-	function renderStations() {
+	// Carica le stazioni nel grid - GLOBALE per poter essere chiamata dal sticky player
+	window.renderRadioStations = function() {
 		stationsGrid.innerHTML = '';
 		radioStations.forEach((station, index) => {
 			const card = document.createElement('div');
@@ -386,14 +407,15 @@ function initializeRadioModal() {
 			
 			stationsGrid.appendChild(card);
 		});
-	}
+		console.log('[RADIO] Station grid renderizzato:', radioStations.length, 'stazioni');
+	};
 	
 	// Apri modal
 	openButtons.forEach(btn => {
 		btn.addEventListener('click', () => {
 			modal.classList.remove('hidden');
 			document.body.style.overflow = 'hidden';
-			renderStations();
+			window.renderRadioStations();
 		});
 	});
 	
@@ -406,6 +428,13 @@ function initializeRadioModal() {
 	
 	closeButton.addEventListener('click', closeModal);
 	cancelButton.addEventListener('click', closeModal);
+	
+	// Chiudi al click fuori dal modal (overlay)
+	modal.addEventListener('click', (e) => {
+		if (e.target === modal) {
+			closeModal();
+		}
+	});
 	
 	// Conferma selezione
 	confirmButton.addEventListener('click', () => {
@@ -472,7 +501,7 @@ function initializeRadioModal() {
 				if (titlesElement) titlesElement.classList.add('hidden');
 				if (liveIndicator) {
 					const statusSpan = liveIndicator.querySelector('.kisskiss-live-text');
-					if (statusSpan) statusSpan.textContent = 'In Onda Ora su KissKiss';
+					if (statusSpan) statusSpan.textContent = 'Torna su KissKiss';
 					liveIndicator.classList.add('cta');
 					// Rendi il live indicator cliccabile per tornare a KissKiss
 					liveIndicator.addEventListener('click', (e) => {
@@ -483,6 +512,21 @@ function initializeRadioModal() {
 					});
 				}
 				console.log("[RADIO] Metadati nascosti, CTA attivato");
+				
+				// Dispatch event per sticky player con i dati della stazione
+				document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
+					detail: { 
+						data: {
+							show: { title: selectedStation.name },
+							trackInfo: { 
+								artwork: selectedStation.logo,
+								artist: '',
+								title: ''
+							}
+						}
+					}
+				}));
+				console.log("[RADIO] Metadata update event dispatchato per stazione:", selectedStation.name);
 			}
 			
 			// Ricarica il player
@@ -504,46 +548,59 @@ function initializeRadioModal() {
 	let isDragging = false;
 	const dragThreshold = 100; // pixel necessari per chiudere
 
+	console.log('[DRAG] Drag handle trovato:', !!dragHandle, '[DRAG] Modal container trovato:', !!modalContainer);
+
 	if (dragHandle) {
 		dragHandle.addEventListener('touchstart', (e) => {
 			touchStartY = e.touches[0].clientY;
 			isDragging = true;
+			console.log('[DRAG] Touch start:', touchStartY);
 		}, false);
 	}
 
-	modalContainer.addEventListener('touchmove', (e) => {
-		if (!isDragging) return;
-		touchCurrentY = e.touches[0].clientY;
-		const drag = touchCurrentY - touchStartY;
+	if (modalContainer) {
+		modalContainer.addEventListener('touchmove', (e) => {
+			if (!isDragging) return;
+			touchCurrentY = e.touches[0].clientY;
+			const drag = touchCurrentY - touchStartY;
 
-		if (drag > 0) {
-			modalContainer.style.transform = `translateY(${drag}px)`;
-		}
-	}, false);
+			console.log('[DRAG] Dragging:', drag, 'px');
 
-	modalContainer.addEventListener('touchend', (e) => {
-		if (!isDragging) return;
-		isDragging = false;
+			if (drag > 0) {
+				e.preventDefault();
+				modalContainer.style.transform = `translateY(${drag}px)`;
+				modalContainer.style.transition = 'none';
+			}
+		}, { passive: false });
 
-		const drag = touchCurrentY - touchStartY;
-		modalContainer.style.transition = 'transform 0.3s ease';
+		modalContainer.addEventListener('touchend', (e) => {
+			if (!isDragging) return;
+			isDragging = false;
 
-		if (drag > dragThreshold) {
-			// Chiudi il modale
-			modalContainer.style.transform = 'translateY(100%)';
-			setTimeout(() => {
-				closeModal();
+			const drag = touchCurrentY - touchStartY;
+			console.log('[DRAG] Touch end - drag distance:', drag, 'threshold:', dragThreshold);
+
+			modalContainer.style.transition = 'transform 0.3s ease';
+
+			if (drag > dragThreshold) {
+				console.log('[DRAG] Closing modal');
+				// Chiudi il modale
+				modalContainer.style.transform = 'translateY(100%)';
+				setTimeout(() => {
+					closeModal();
+					modalContainer.style.transform = 'translateY(0)';
+					modalContainer.style.transition = 'none';
+				}, 300);
+			} else {
+				console.log('[DRAG] Returning to original position');
+				// Ritorna alla posizione originale
 				modalContainer.style.transform = 'translateY(0)';
-				modalContainer.style.transition = 'none';
-			}, 300);
-		} else {
-			// Ritorna alla posizione originale
-			modalContainer.style.transform = 'translateY(0)';
-			setTimeout(() => {
-				modalContainer.style.transition = 'none';
-			}, 300);
-		}
-	}, false);
+				setTimeout(() => {
+					modalContainer.style.transition = 'none';
+				}, 300);
+			}
+		}, false);
+	}
 }
 
 if (document.readyState === "loading") {

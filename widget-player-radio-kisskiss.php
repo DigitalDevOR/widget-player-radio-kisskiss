@@ -16,6 +16,10 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
+
+// Carica le costanti globali
+require_once plugin_dir_path( __FILE__ ) . 'includes/globals.php';
+
 /**
  * Registers the block(s) metadata from the `blocks-manifest.php` and registers the block type(s)
  * based on the registered block metadata. Behind the scenes, it registers also all assets so they can be enqueued
@@ -58,12 +62,26 @@ function enqueue_kisskiss_share_control() {
 add_action( 'wp_enqueue_scripts', 'enqueue_kisskiss_share_control' );
 
 /**
+ * Enqueue sticky player script
+ */
+function enqueue_kisskiss_sticky_player() {
+	wp_enqueue_script(
+		'kisskiss-sticky-player',
+		plugin_dir_url( __FILE__ ) . 'src/widget-player-radio-kisskiss/sticky-player.js',
+		[],
+		'1.0',
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'enqueue_kisskiss_sticky_player' );
+
+/**
  * Registra lo shortcode [kisskiss-player]
  * Utilizzo: [kisskiss-player]
  * Pixel perfect render dal mockup HTML
  */
 function widget_player_radio_kisskiss_shortcode( $atts ) {
-	$plugin_url = plugin_dir_url( __FILE__ ) . 'assets/';
+	$plugin_url = KISSKISS_ASSETS_URL;
 
 	// Enqueue view.js
 	wp_enqueue_script(
@@ -86,6 +104,14 @@ function widget_player_radio_kisskiss_shortcode( $atts ) {
 
 	wp_enqueue_style( 'create-block-widget-player-radio-kisskiss-style' );
 
+	// Enqueue sticky player CSS
+	wp_enqueue_style(
+		'kisskiss-sticky-player-style',
+		plugin_dir_url( __FILE__ ) . 'src/widget-player-radio-kisskiss/sticky-player.css',
+		[],
+		filemtime( plugin_dir_path( __FILE__ ) . 'src/widget-player-radio-kisskiss/sticky-player.css' )
+	);
+
 	// Genera l'HTML pixel perfect dal mockup
 	ob_start();
 	?>
@@ -101,7 +127,9 @@ function widget_player_radio_kisskiss_shortcode( $atts ) {
 		</main>
 	</div>
 
+	<?php include plugin_dir_path( __FILE__ ) . 'includes/sticky-player.php'; ?>
 	<?php include plugin_dir_path( __FILE__ ) . 'includes/radio-modal.php'; ?>
+	<?php include plugin_dir_path( __FILE__ ) . 'includes/share-modal.php'; ?>
 	<?php
 	return ob_get_clean();
 }
