@@ -42,50 +42,15 @@ document.addEventListener('DOMContentLoaded', function() {
             <img src="${pluginUrl}telegramIcon.svg" alt="Telegram" class="kisskiss-share-icon-img" />
             <span>Telegram</span>
           </a>
-          
-          <button class="kisskiss-share-option kisskiss-share-copy" data-url="${pageUrl}" title="Copia link">
-            <span class="kisskiss-share-icon">📋</span>
-            <span>Copia link</span>
-          </button>
         `;
-
-        // Aggiungi event listener al pulsante copia
-        const copyBtn = shareOptionsContainer.querySelector('.kisskiss-share-copy');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', handleCopyLink);
-        }
-    }
-
-    function handleCopyLink(e) {
-        e.preventDefault();
-        const url = this.getAttribute('data-url');
-        
-        navigator.clipboard.writeText(url).then(() => {
-            const originalText = this.innerHTML;
-            this.innerHTML = '<span class="kisskiss-share-icon">✓</span><span>Copiato!</span>';
-            
-            setTimeout(() => {
-                this.innerHTML = originalText;
-            }, 2000);
-        }).catch(() => {
-            // Fallback per browser vecchi
-            const textarea = document.createElement('textarea');
-            textarea.value = url;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            
-            const originalText = this.innerHTML;
-            this.innerHTML = '<span class="kisskiss-share-icon">✓</span><span>Copiato!</span>';
-            setTimeout(() => {
-                this.innerHTML = originalText;
-            }, 2000);
-        });
+ 
     }
 
     function openShareModal() {
         renderShareOptions();
+        // Rimuovi eventuale opzione "Copia" residua (difensivo, per cache o markup esterno)
+        const existingCopy = shareOptionsContainer.querySelector('.kisskiss-share-copy');
+        if (existingCopy) existingCopy.remove();
         shareModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }

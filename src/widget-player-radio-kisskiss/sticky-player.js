@@ -85,72 +85,6 @@ class KisskissStickyPlayer {
 		console.log('[STICKY-PLAYER] All event listeners attached');
 	}
 
-	// Sticky-local program cover cycle (mirrors main player's behavior if needed)
-	startStickyProgramCycle(baseSrc, overlaySrc, programTitle) {
-		this.stopStickyProgramCycle();
-
-		const desktopCover = document.getElementById('sticky-player-cover-desktop');
-		const mobileCover = document.getElementById('sticky-player-cover-mobile');
-		const desktopProgramCover = document.getElementById('sticky-program-cover-desktop');
-		const mobileProgramCover = document.getElementById('sticky-program-cover-mobile');
-
-		// set base cover (program/logo) and overlay (track artwork)
-		if (desktopCover && baseSrc) setImageSrcIfChanged(desktopCover, baseSrc);
-		if (mobileCover && baseSrc) setImageSrcIfChanged(mobileCover, baseSrc);
-
-		if (desktopProgramCover && overlaySrc) setImageSrcIfChanged(desktopProgramCover, overlaySrc);
-		if (mobileProgramCover && overlaySrc) setImageSrcIfChanged(mobileProgramCover, overlaySrc);
-
-		const showOverlay = () => {
-			if (desktopProgramCover) desktopProgramCover.classList.add('is-visible');
-			if (mobileProgramCover) mobileProgramCover.classList.add('is-visible');
-		};
-
-		const hideOverlay = () => {
-			if (desktopProgramCover) desktopProgramCover.classList.remove('is-visible');
-			if (mobileProgramCover) mobileProgramCover.classList.remove('is-visible');
-		};
-
-		// initial show overlay then alternate
-		showOverlay();
-		this._stickyProgramShown = true;
-
-		this._stickyProgramIntervalId = setInterval(() => {
-			if (this._stickyProgramShown) hideOverlay(); else showOverlay();
-			this._stickyProgramShown = !this._stickyProgramShown;
-		}, 3000);
-
-		// keep cycle for 20s then stop or restart if same program
-		this._stickyProgramTimeoutId = setTimeout(() => {
-			if (this._stickyLastProgramTitle === programTitle) {
-				// restart cycle
-				this.stopStickyProgramCycle();
-				this.startStickyProgramCycle(baseSrc, overlaySrc, programTitle);
-			} else {
-				this.stopStickyProgramCycle();
-			}
-		}, 20000);
-
-		this._stickyLastProgramTitle = programTitle;
-	}
-
-	stopStickyProgramCycle() {
-		if (this._stickyProgramIntervalId) {
-			clearInterval(this._stickyProgramIntervalId);
-			this._stickyProgramIntervalId = null;
-		}
-		if (this._stickyProgramTimeoutId) {
-			clearTimeout(this._stickyProgramTimeoutId);
-			this._stickyProgramTimeoutId = null;
-		}
-		// ensure overlay hidden, but keep base cover visible
-		const desktopProgramCover = document.getElementById('sticky-program-cover-desktop');
-		const mobileProgramCover = document.getElementById('sticky-program-cover-mobile');
-		if (desktopProgramCover) desktopProgramCover.classList.remove('is-visible');
-		if (mobileProgramCover) mobileProgramCover.classList.remove('is-visible');
-		this._stickyProgramShown = false;
-	}
-
 	attachButtonListeners() {
 		// Desktop play/pause
 		const playPauseDesktop = document.getElementById('sticky-play-pause-desktop');
@@ -298,35 +232,19 @@ class KisskissStickyPlayer {
 
 		const defaultLogo = window.kisskissData?.pluginUrl ? window.kisskissData.pluginUrl + 'logo.png' : '';
 		const trackArtwork = (artwork && String(artwork).trim().toLowerCase() !== 'null') ? artwork : '';
+		const mainCoverSrc = detail.mainCoverSrc || '';
 
-		// base cover: prefer program cover (from programs data) then track artwork then default
-		const baseCoverSrc = programCoverSrc || trackArtwork || defaultLogo;
-		const overlaySrc = trackArtwork || programCoverSrc || '';
+		// base cover: the actual main cover source emitted by view.js, then the current track artwork, then default logo
+		const baseCoverSrc = mainCoverSrc || trackArtwork || defaultLogo;
+		const overlaySrc = programCoverSrc || '';
 
 		// set base covers
 		if (desktopCover && baseCoverSrc) setImageSrcIfChanged(desktopCover, baseCoverSrc);
 		if (mobileCover && baseCoverSrc) setImageSrcIfChanged(mobileCover, baseCoverSrc);
 
-		// If main explicitly toggles visibility, apply it (do not stop local cycle)
-		if (typeof detail.programCoverVisible !== 'undefined') {
-			if (programCoverVisible) {
-				if (desktopProgramCover && programCoverSrc) setImageSrcIfChanged(desktopProgramCover, programCoverSrc);
-				if (mobileProgramCover && programCoverSrc) setImageSrcIfChanged(mobileProgramCover, programCoverSrc);
-				if (desktopProgramCover) desktopProgramCover.classList.add('is-visible');
-				if (mobileProgramCover) mobileProgramCover.classList.add('is-visible');
-			} else {
-				if (desktopProgramCover) desktopProgramCover.classList.remove('is-visible');
-				if (mobileProgramCover) mobileProgramCover.classList.remove('is-visible');
-			}
-		}
-
-		// If main started a cycle, mirror it locally
-		if (programCoverCycleActive && overlaySrc) {
-			const programTitle = data.show?.title || '';
-			if (this._stickyLastProgramTitle !== programTitle || !this._stickyProgramIntervalId) {
-				this.startStickyProgramCycle(baseCoverSrc, overlaySrc, programTitle);
-			}
-		}
+		// Update sticky overlay sources only; visibility is handled centrally in programsManager.js
+		if (desktopProgramCover && overlaySrc) setImageSrcIfChanged(desktopProgramCover, overlaySrc);
+		if (mobileProgramCover && overlaySrc) setImageSrcIfChanged(mobileProgramCover, overlaySrc);
 	}
 }
 

@@ -5,6 +5,7 @@
 
 let programCoverIntervalId = null;
 let programCoverWindowTimeoutId = null;
+let programCoverVisibilityTimeoutId = null;
 let programCoverCurrentShown = false;
 let lastProgramTitle = null;
 let lastProgramCoverSrc = '';
@@ -27,10 +28,105 @@ function getProgramCoverElement() {
 	return document.getElementById('program-cover');
 }
 
+function getMainCoverElement() {
+	return document.getElementById('main-cover');
+}
+
+function getProgramCoverStickyDesktop() {
+	return document.getElementById('sticky-player-cover-desktop');
+}
+
+function getProgramCoverStickyMobile() {
+	return document.getElementById('sticky-player-cover-mobile');
+}
+
+function getStickyProgramCoverDesktop() {
+	return document.getElementById('sticky-program-cover-desktop');
+}
+
+function getStickyProgramCoverMobile() {
+	return document.getElementById('sticky-program-cover-mobile');
+}
+
+function getProgramCoverTargets() {
+	return [
+		getProgramCoverElement(),
+		getStickyProgramCoverDesktop(),
+		getStickyProgramCoverMobile(),
+	].filter(Boolean);
+}
+
+function getProgramCoverHideTargets(visible) {
+	if (visible) {
+		return [
+			getProgramCoverStickyDesktop(),
+			getProgramCoverStickyMobile(),
+		].filter(Boolean);
+	}
+
+	return [
+		getProgramCoverElement(),
+		getStickyProgramCoverDesktop(),
+		getStickyProgramCoverMobile(),
+	].filter(Boolean);
+}
+
+function getProgramCoverShowTargets(visible) {
+	if (visible) {
+		return [
+			getProgramCoverElement(),
+			getStickyProgramCoverDesktop(),
+			getStickyProgramCoverMobile(),
+		].filter(Boolean);
+	}
+
+	return [
+		getProgramCoverStickyDesktop(),
+		getProgramCoverStickyMobile(),
+	].filter(Boolean);
+}
+
+function setCoverVisibleState(coverElement, visible) {
+	if (!coverElement) return;
+
+	coverElement.style.display = 'block';
+	coverElement.style.opacity = '0';
+	coverElement.style.visibility = 'visible';
+
+	if (visible) {
+		coverElement.classList.remove('is-fading-out');
+		coverElement.offsetHeight;
+		requestAnimationFrame(() => {
+			coverElement.classList.add('is-visible');
+			coverElement.style.opacity = '1';
+		});
+		return;
+	}
+
+	coverElement.classList.add('is-fading-out');
+	coverElement.classList.remove('is-visible');
+}
+
 function setProgramCoverVisible(visible) {
-	const programCover = getProgramCoverElement();
-	if (!programCover) return;
-	programCover.classList.toggle('is-visible', visible);
+	const hideTargets = getProgramCoverHideTargets(visible);
+	const showTargets = getProgramCoverShowTargets(visible);
+	if (!hideTargets.length && !showTargets.length) return;
+
+	if (programCoverVisibilityTimeoutId !== null) {
+		clearTimeout(programCoverVisibilityTimeoutId);
+		programCoverVisibilityTimeoutId = null;
+	}
+
+	hideTargets.forEach((coverElement) => setCoverVisibleState(coverElement, false));
+	showTargets.forEach((coverElement) => setCoverVisibleState(coverElement, true));
+
+	programCoverVisibilityTimeoutId = setTimeout(() => {
+		hideTargets.forEach((currentProgramCover) => {
+			currentProgramCover.style.display = 'none';
+			currentProgramCover.style.visibility = 'hidden';
+			currentProgramCover.classList.remove('is-fading-out');
+		});
+	}, 500);
 }
 
 function setProgramCoverSrc(src) {
@@ -42,7 +138,7 @@ function setProgramCoverSrc(src) {
 	}
 }
 
-function stopProgramCoverCycle() {
+function stopProgramCoverCycle(data = lastProgramData, coverSrc = lastProgramCoverSrc) {
 	if (programCoverIntervalId !== null) {
 		clearInterval(programCoverIntervalId);
 		programCoverIntervalId = null;
@@ -51,24 +147,18 @@ function stopProgramCoverCycle() {
 		clearTimeout(programCoverWindowTimeoutId);
 		programCoverWindowTimeoutId = null;
 	}
+	if (programCoverVisibilityTimeoutId !== null) {
+		clearTimeout(programCoverVisibilityTimeoutId);
+		programCoverVisibilityTimeoutId = null;
+	}
 	programCoverCurrentShown = false;
 	setProgramCoverVisible(false);
 	// mark cycle inactive
 	currentProgramCoverState.cycleActive = false;
-
-	// dispatch hide to sync sticky
-	document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
-		detail: {
-			data: lastProgramData || {},
-			programCoverVisible: false,
-			programCoverSrc: lastProgramCoverSrc || '',
-			programCoverCycleActive: false,
-		},
-	}));
 }
 
 function startProgramCoverCycle(data, matchingProgram) {
-	stopProgramCoverCycle();
+	stopProgramCoverCycle(data, matchingProgram.cover_url);
 
 	const coverSrc = matchingProgram.cover_url;
 	lastProgramData = data;
@@ -77,29 +167,14 @@ function startProgramCoverCycle(data, matchingProgram) {
 	const show = () => {
 		setProgramCoverVisible(true);
 		setProgramCoverState(true, coverSrc);
-		// notify sticky/main listeners that program cover is visible
-		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
-			detail: {
-				data,
-				programCoverVisible: true,
-				programCoverSrc: coverSrc,
-				programCoverCycleActive: true,
-			},
-		}));
+		
 	};
 
 	const hide = () => {
 		setProgramCoverVisible(false);
 		setProgramCoverState(false, coverSrc);
 		// notify sticky/main listeners that program cover is hidden
-		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
-			detail: {
-				data,
-				programCoverVisible: false,
-				programCoverSrc: coverSrc,
-				programCoverCycleActive: true,
-			},
-		}));
+		
 	};
 
 	// Mostra subito la copertina e poi alterna ogni 3 secondi

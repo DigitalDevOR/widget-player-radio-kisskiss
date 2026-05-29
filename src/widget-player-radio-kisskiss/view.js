@@ -37,12 +37,14 @@ const createUpdateMetadataCallback = (endpoint) => {
 		const songArtist = document.getElementById('song-artist');
 		const songArtis2 = document.getElementById('song-artist-2');
 		const songTitle = document.getElementById('song-title');
+		let mainCoverSrc = '';
 
 		if (coverImage) {
 			let artworkUrl = data.trackInfo?.artwork;
 			const isValidArtwork = artworkUrl && typeof artworkUrl === 'string' && artworkUrl.trim().length > 0 && artworkUrl.trim().toLowerCase() !== 'null';
 			const stationLogo = radioStations[currentStationIndex]?.logo || window.kisskissData.pluginUrl + 'logo.png';
-			setCoverImageSmoothly(coverImage, isValidArtwork ? artworkUrl.trim() : stationLogo);
+			mainCoverSrc = isValidArtwork ? artworkUrl.trim() : stationLogo;
+			setCoverImageSmoothly(coverImage, mainCoverSrc);
 		}
 
 		if (programTitleOverlay) programTitleOverlay.textContent = data.show?.title || '';
@@ -189,7 +191,8 @@ function onSelectStation(selectedStationIndex) {
 		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', { detail: {
 			data: {
 				show: { title: selectedStation.name },
-				trackInfo: { artwork: selectedStation.logo, artist: '', title: '' }
+				trackInfo: { artwork: selectedStation.logo, artist: '', title: '' },
+				mainCoverSrc: selectedStation.logo || window.kisskissData.pluginUrl + 'logo.png'
 			}
 		} }));
 	}
@@ -222,6 +225,10 @@ async function mainInit() {
 
 if (document.readyState === 'loading') {
 	document.addEventListener('DOMContentLoaded', mainInit);
+	document.addEventListener('DOMContentLoaded', () => {
+		const iubendaButton = document.querySelector('.iubenda-tp-btn iubenda-cs-preferences-link');
+		iubendaButton.style.setProperty('margin-bottom', '100px', 'important');
+	});
 } else {
 	mainInit();
 }

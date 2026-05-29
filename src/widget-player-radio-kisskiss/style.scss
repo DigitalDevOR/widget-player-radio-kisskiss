@@ -6,7 +6,7 @@
 .e-con-inner{
 	max-width: 100% !important;
 }
-
+	
 .wp-block-kisskiss-player {
 	width: 100%;
 	color: #1a1b25;
@@ -23,14 +23,6 @@
 	overflow: hidden;
 	min-height: 100vh;
 }
-
-@media (max-width: 768px) {
-	.kisskiss-player-main {
-		padding: 2rem 6px;
-		min-height: 100vh;
-	}
-}
-
 .kisskiss-player-container {
 	width: 100%;
 	max-width: 1152px;
@@ -117,13 +109,22 @@
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
-	display: none;
+	display: block;
+	opacity: 0;
+	visibility: hidden;
 	pointer-events: none;
-	opacity: 1;
-	transition: opacity 220ms ease;
+	transition: opacity 1s ease, visibility 0s linear 1s;
 
 	&.is-visible {
-		display: block;
+		opacity: 1;
+		visibility: visible;
+		transition: opacity 1s ease;
+	}
+
+	&.is-fading-out {
+		opacity: 0;
+		visibility: visible;
+		transition: opacity 1s ease;
 	}
 }
 
@@ -713,11 +714,7 @@
 	color: #ff9800;
 }
 
-.kisskiss-share-copy:hover {
-	background: #f0f0f0;
-	border-color: #0024c1;
-	color: #0024c1;
-}
+
 
 .kisskiss-song-artis-mobile {
 	display: none;
@@ -1229,6 +1226,17 @@
 	opacity: 1;
 }
 
+/* base layer */
+#sticky-player-cover-desktop,
+#sticky-player-cover-mobile {
+	position: relative;
+	z-index: 1;
+	opacity: 1;
+	visibility: visible;
+	pointer-events: none;
+	transition: opacity 0.5s ease;
+}
+
 /* program overlay layer sits above and fades in/out */
 #sticky-program-cover-desktop,
 #sticky-program-cover-mobile {
@@ -1238,13 +1246,29 @@
 	width: 100%;
 	height: 100%;
 	z-index: 2;
+	display: block;
 	opacity: 0;
+	visibility: hidden;
 	pointer-events: none;
-	transition: opacity 220ms ease;
+	transition: opacity 1s ease, visibility 0s linear 1s;
 }
 
 /* visible state toggled by JS */
+#sticky-player-cover-desktop.is-visible,
+#sticky-player-cover-mobile.is-visible,
 #sticky-program-cover-desktop.is-visible,
 #sticky-program-cover-mobile.is-visible {
 	opacity: 1;
+	visibility: visible;
+	transition: opacity 1s ease;
 }
+
+#sticky-player-cover-desktop.is-fading-out,
+#sticky-player-cover-mobile.is-fading-out,
+#sticky-program-cover-desktop.is-fading-out,
+#sticky-program-cover-mobile.is-fading-out {
+	opacity: 0;
+	visibility: visible;
+	transition: opacity 1s ease;
+}
+

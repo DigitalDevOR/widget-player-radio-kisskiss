@@ -109,21 +109,41 @@ body {
 	transition: transform 0.3s ease;
 }
 
-#sticky-program-cover-desktop,
-#sticky-program-cover-mobile {
-	display: none;
-	pointer-events: none;
-	z-index: 2;
-}
-
-#sticky-program-cover-desktop.is-visible,
-#sticky-program-cover-mobile.is-visible {
-	display: block;
-}
-
 #sticky-player-cover-desktop,
 #sticky-player-cover-mobile {
 	z-index: 1;
+	opacity: 1;
+	visibility: visible;
+	pointer-events: none;
+	transition: opacity 0.5s ease;
+}
+
+#sticky-program-cover-desktop,
+#sticky-program-cover-mobile {
+	display: block;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	z-index: 2;
+	transition: opacity 1s ease, visibility 0s linear 1s;
+}
+
+#sticky-player-cover-desktop.is-visible,
+#sticky-player-cover-mobile.is-visible,
+#sticky-program-cover-desktop.is-visible,
+#sticky-program-cover-mobile.is-visible {
+	opacity: 1;
+	visibility: visible;
+	transition: opacity 1s ease;
+}
+
+#sticky-player-cover-desktop.is-fading-out,
+#sticky-player-cover-mobile.is-fading-out,
+#sticky-program-cover-desktop.is-fading-out,
+#sticky-program-cover-mobile.is-fading-out {
+	opacity: 0;
+	visibility: visible;
+	transition: opacity 1s ease;
 }
 
 .kisskiss-sticky-player-desktop__cover:hover img {
