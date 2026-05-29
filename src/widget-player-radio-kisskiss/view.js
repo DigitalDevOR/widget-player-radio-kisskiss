@@ -42,7 +42,7 @@ const createUpdateMetadataCallback = (endpoint) => {
 			let artworkUrl = data.trackInfo?.artwork;
 			const isValidArtwork = artworkUrl && typeof artworkUrl === 'string' && artworkUrl.trim().length > 0 && artworkUrl.trim().toLowerCase() !== 'null';
 			const stationLogo = radioStations[currentStationIndex]?.logo || window.kisskissData.pluginUrl + 'logo.png';
-			coverImage.src = isValidArtwork ? artworkUrl.trim() : stationLogo;
+			setCoverImageSmoothly(coverImage, isValidArtwork ? artworkUrl.trim() : stationLogo);
 		}
 
 		if (programTitleOverlay) programTitleOverlay.textContent = data.show?.title || '';
@@ -71,13 +71,15 @@ const createUpdateMetadataCallback = (endpoint) => {
 
 		// Dispatch sempre i metadati base con stato overlay programma incluso
 		const programCoverState = getProgramCoverState();
+		console.log('[VIEW] Dispatching metadata 1:', data);
 		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
 			detail: {
 				data,
 				programCoverVisible: programCoverState.visible,
 				programCoverSrc: programCoverState.coverSrc,
+				programCoverCycleActive: !!programCoverState.cycleActive,
 			},
-		}));
+		}))
 	};
 };
 
@@ -161,11 +163,14 @@ function onSelectStation(selectedStationIndex) {
 			const last = pollingManager.activePollings[defaultEndpoint]?.lastData || null;
 			const cover = last?.trackInfo?.artwork || radioStations[DEFAULT_STATION_INDEX].logo || window.kisskissData.pluginUrl + 'logo.png';
 			const dataToDispatch = last || { show: { title: radioStations[DEFAULT_STATION_INDEX].name }, trackInfo: { artwork: cover, artist: '', title: '' } };
-			document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', { detail: { data: dataToDispatch } }));
+				console.log('[VIEW] Refreshing default metadata via callback:', dataToDispatch);
+				createUpdateMetadataCallback(defaultEndpoint)(dataToDispatch);
 		} else {
 			// No default endpoint: still dispatch logo so sticky updates
 			const cover = radioStations[DEFAULT_STATION_INDEX].logo || window.kisskissData.pluginUrl + 'logo.png';
-			document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', { detail: { data: { show: { title: radioStations[DEFAULT_STATION_INDEX].name }, trackInfo: { artwork: cover, artist: '', title: '' } } } }));
+				const fallbackData = { show: { title: radioStations[DEFAULT_STATION_INDEX].name }, trackInfo: { artwork: cover, artist: '', title: '' } };
+				console.log('[VIEW] Refreshing default metadata via callback (no endpoint):', fallbackData);
+				createUpdateMetadataCallback(defaultEndpoint)(fallbackData);
 		}
 	}
 
@@ -180,6 +185,7 @@ function onSelectStation(selectedStationIndex) {
 		if (titlesElement) titlesElement.classList.add('hidden');
 		if (liveIndicator) liveIndicator.classList.add('cta');
 		// dispatch metadata update for non-default station so sticky shows station name/logo
+		console.log('[VIEW] Dispatching metadata 4:', { show: { title: selectedStation.name }, trackInfo: { artwork: selectedStation.logo, artist: '', title: '' } });
 		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', { detail: {
 			data: {
 				show: { title: selectedStation.name },

@@ -23,11 +23,13 @@ require_once plugin_dir_path( __FILE__ ) . 'globals.php';
 				<div class="kisskiss-sticky-player-desktop__cover">
 					<img
 						id="sticky-player-cover-desktop"
+						class="kisskiss-cover-img"
 						alt="Album Cover"
-						src=""
+						src="<?php echo esc_url( KISSKISS_ASSETS_URL . 'logo.png' ); ?>"
 					/>
 					<img
 						id="sticky-program-cover-desktop"
+						class="kisskiss-program-cover-img"
 						alt="Program Cover"
 						aria-hidden="true"
 						src=""
@@ -39,7 +41,7 @@ require_once plugin_dir_path( __FILE__ ) . 'globals.php';
 						<span class="kisskiss-sticky-player-desktop__live-label hidden" id="sticky-live-label-desktop">Live</span>
 						<h3 id="sticky-show-title-desktop" class="kisskiss-sticky-player-desktop__show-title">Loading...</h3>
 					</div>
-					<p id="sticky-song-info-desktop" class="kisskiss-sticky-player-desktop__song-info">-</p>
+					<p id="sticky-song-info-desktop" class="kisskiss-sticky-player-desktop__song-info"></p>
 				</div>
 			</div>
 
@@ -79,11 +81,13 @@ require_once plugin_dir_path( __FILE__ ) . 'globals.php';
 					<div class="kisskiss-sticky-player-mobile__cover">
 						<img
 							id="sticky-player-cover-mobile"
-							src=""
+							class="kisskiss-cover-img"
+							src="<?php echo esc_url( KISSKISS_ASSETS_URL . 'logo.png' ); ?>"
 							alt="Album Cover"
 						/>
 						<img
 							id="sticky-program-cover-mobile"
+							class="kisskiss-program-cover-img"
 							aria-hidden="true"
 							src=""
 							alt="Program Cover"

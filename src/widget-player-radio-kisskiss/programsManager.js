@@ -8,15 +8,18 @@ let programCoverWindowTimeoutId = null;
 let programCoverCurrentShown = false;
 let lastProgramTitle = null;
 let lastProgramCoverSrc = '';
+let lastProgramData = null;
 let currentProgramCoverState = {
 	visible: false,
 	coverSrc: '',
+	cycleActive: false,
 };
 
 function setProgramCoverState(visible, coverSrc) {
 	currentProgramCoverState = {
 		visible: !!visible,
 		coverSrc: coverSrc || '',
+		cycleActive: currentProgramCoverState.cycleActive || false,
 	};
 }
 
@@ -50,27 +53,61 @@ function stopProgramCoverCycle() {
 	}
 	programCoverCurrentShown = false;
 	setProgramCoverVisible(false);
+	// mark cycle inactive
+	currentProgramCoverState.cycleActive = false;
+
+	// dispatch hide to sync sticky
+	document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
+		detail: {
+			data: lastProgramData || {},
+			programCoverVisible: false,
+			programCoverSrc: lastProgramCoverSrc || '',
+			programCoverCycleActive: false,
+		},
+	}));
 }
 
 function startProgramCoverCycle(data, matchingProgram) {
 	stopProgramCoverCycle();
 
 	const coverSrc = matchingProgram.cover_url;
+	lastProgramData = data;
 	setProgramCoverSrc(coverSrc);
 
 	const show = () => {
 		setProgramCoverVisible(true);
 		setProgramCoverState(true, coverSrc);
+		// notify sticky/main listeners that program cover is visible
+		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
+			detail: {
+				data,
+				programCoverVisible: true,
+				programCoverSrc: coverSrc,
+				programCoverCycleActive: true,
+			},
+		}));
 	};
 
 	const hide = () => {
 		setProgramCoverVisible(false);
 		setProgramCoverState(false, coverSrc);
+		// notify sticky/main listeners that program cover is hidden
+		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
+			detail: {
+				data,
+				programCoverVisible: false,
+				programCoverSrc: coverSrc,
+				programCoverCycleActive: true,
+			},
+		}));
 	};
 
 	// Mostra subito la copertina e poi alterna ogni 3 secondi
 	programCoverCurrentShown = true;
 	show();
+
+	// mark cycle active so view.js can notify sticky
+	currentProgramCoverState.cycleActive = true;
 
 	programCoverIntervalId = setInterval(() => {
 		if (programCoverCurrentShown) {

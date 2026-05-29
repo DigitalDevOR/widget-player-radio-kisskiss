@@ -76,13 +76,79 @@ class KisskissStickyPlayer {
 		// Listen for metadata update from view.js
 		document.addEventListener('kisskiss-metadata-update', (e) => {
 			console.log('[STICKY-PLAYER] Metadata update event:', e.detail.data);
-			this.updateMetadata(e.detail.data, e.detail);
+			this.updateMetadata(e.detail);
 		});
 
 		// Attach local button listeners
 		this.attachButtonListeners();
 
 		console.log('[STICKY-PLAYER] All event listeners attached');
+	}
+
+	// Sticky-local program cover cycle (mirrors main player's behavior if needed)
+	startStickyProgramCycle(baseSrc, overlaySrc, programTitle) {
+		this.stopStickyProgramCycle();
+
+		const desktopCover = document.getElementById('sticky-player-cover-desktop');
+		const mobileCover = document.getElementById('sticky-player-cover-mobile');
+		const desktopProgramCover = document.getElementById('sticky-program-cover-desktop');
+		const mobileProgramCover = document.getElementById('sticky-program-cover-mobile');
+
+		// set base cover (program/logo) and overlay (track artwork)
+		if (desktopCover && baseSrc) setImageSrcIfChanged(desktopCover, baseSrc);
+		if (mobileCover && baseSrc) setImageSrcIfChanged(mobileCover, baseSrc);
+
+		if (desktopProgramCover && overlaySrc) setImageSrcIfChanged(desktopProgramCover, overlaySrc);
+		if (mobileProgramCover && overlaySrc) setImageSrcIfChanged(mobileProgramCover, overlaySrc);
+
+		const showOverlay = () => {
+			if (desktopProgramCover) desktopProgramCover.classList.add('is-visible');
+			if (mobileProgramCover) mobileProgramCover.classList.add('is-visible');
+		};
+
+		const hideOverlay = () => {
+			if (desktopProgramCover) desktopProgramCover.classList.remove('is-visible');
+			if (mobileProgramCover) mobileProgramCover.classList.remove('is-visible');
+		};
+
+		// initial show overlay then alternate
+		showOverlay();
+		this._stickyProgramShown = true;
+
+		this._stickyProgramIntervalId = setInterval(() => {
+			if (this._stickyProgramShown) hideOverlay(); else showOverlay();
+			this._stickyProgramShown = !this._stickyProgramShown;
+		}, 3000);
+
+		// keep cycle for 20s then stop or restart if same program
+		this._stickyProgramTimeoutId = setTimeout(() => {
+			if (this._stickyLastProgramTitle === programTitle) {
+				// restart cycle
+				this.stopStickyProgramCycle();
+				this.startStickyProgramCycle(baseSrc, overlaySrc, programTitle);
+			} else {
+				this.stopStickyProgramCycle();
+			}
+		}, 20000);
+
+		this._stickyLastProgramTitle = programTitle;
+	}
+
+	stopStickyProgramCycle() {
+		if (this._stickyProgramIntervalId) {
+			clearInterval(this._stickyProgramIntervalId);
+			this._stickyProgramIntervalId = null;
+		}
+		if (this._stickyProgramTimeoutId) {
+			clearTimeout(this._stickyProgramTimeoutId);
+			this._stickyProgramTimeoutId = null;
+		}
+		// ensure overlay hidden, but keep base cover visible
+		const desktopProgramCover = document.getElementById('sticky-program-cover-desktop');
+		const mobileProgramCover = document.getElementById('sticky-program-cover-mobile');
+		if (desktopProgramCover) desktopProgramCover.classList.remove('is-visible');
+		if (mobileProgramCover) mobileProgramCover.classList.remove('is-visible');
+		this._stickyProgramShown = false;
 	}
 
 	attachButtonListeners() {
@@ -199,63 +265,68 @@ class KisskissStickyPlayer {
 		}
 	}
 
-	updateMetadata(data, detail = {}) {
-		// Update covers
-		let coverSrc = data.trackInfo?.artwork;
-		if (!coverSrc || coverSrc.trim().toLowerCase() === 'null') {
-			// Fallback to station logo if no artwork
-			const defaultStationLogo = window.kisskissData?.pluginUrl + 'logo.png';
-			coverSrc = defaultStationLogo;
-		}
+	updateMetadata(detail) {
+		const data = detail.data || detail;
 
+		const showTitleDesktop = document.getElementById('sticky-show-title-desktop');
+		const showTitleMobile = document.getElementById('sticky-show-title-mobile');
+		const songInfoDesktop = document.getElementById('sticky-song-info-desktop');
 		const desktopCover = document.getElementById('sticky-player-cover-desktop');
 		const mobileCover = document.getElementById('sticky-player-cover-mobile');
-		
-		if (desktopCover) setImageSrcIfChanged(desktopCover, coverSrc);
-		if (mobileCover) setImageSrcIfChanged(mobileCover, coverSrc);
-
 		const desktopProgramCover = document.getElementById('sticky-program-cover-desktop');
 		const mobileProgramCover = document.getElementById('sticky-program-cover-mobile');
+
+		const showTitle = data.show?.title || '';
+		const artist = data.trackInfo?.artist || '';
+		const title = data.trackInfo?.title || '';
+		const artwork = data.trackInfo?.artwork || '';
+
+		if (showTitleDesktop) showTitleDesktop.textContent = showTitle;
+		if (showTitleMobile) showTitleMobile.textContent = showTitle;
+
+		if (songInfoDesktop) {
+			if (artist && title) songInfoDesktop.textContent = `${artist} - ${title}`;
+			else if (artist) songInfoDesktop.textContent = artist;
+			else if (title) songInfoDesktop.textContent = title;
+			else songInfoDesktop.textContent = '';
+		}
+
+		// Flags and sources sent by view/programsManager
 		const programCoverVisible = !!detail.programCoverVisible;
 		const programCoverSrc = detail.programCoverSrc || '';
-		if (desktopProgramCover) {
+		const programCoverCycleActive = !!detail.programCoverCycleActive;
+
+		const defaultLogo = window.kisskissData?.pluginUrl ? window.kisskissData.pluginUrl + 'logo.png' : '';
+		const trackArtwork = (artwork && String(artwork).trim().toLowerCase() !== 'null') ? artwork : '';
+
+		// base cover: prefer program cover (from programs data) then track artwork then default
+		const baseCoverSrc = programCoverSrc || trackArtwork || defaultLogo;
+		const overlaySrc = trackArtwork || programCoverSrc || '';
+
+		// set base covers
+		if (desktopCover && baseCoverSrc) setImageSrcIfChanged(desktopCover, baseCoverSrc);
+		if (mobileCover && baseCoverSrc) setImageSrcIfChanged(mobileCover, baseCoverSrc);
+
+		// If main explicitly toggles visibility, apply it (do not stop local cycle)
+		if (typeof detail.programCoverVisible !== 'undefined') {
 			if (programCoverVisible) {
-				if (programCoverSrc) {
-					setImageSrcIfChanged(desktopProgramCover, programCoverSrc);
-				}
-				desktopProgramCover.classList.add('is-visible');
+				if (desktopProgramCover && programCoverSrc) setImageSrcIfChanged(desktopProgramCover, programCoverSrc);
+				if (mobileProgramCover && programCoverSrc) setImageSrcIfChanged(mobileProgramCover, programCoverSrc);
+				if (desktopProgramCover) desktopProgramCover.classList.add('is-visible');
+				if (mobileProgramCover) mobileProgramCover.classList.add('is-visible');
 			} else {
-				desktopProgramCover.classList.remove('is-visible');
+				if (desktopProgramCover) desktopProgramCover.classList.remove('is-visible');
+				if (mobileProgramCover) mobileProgramCover.classList.remove('is-visible');
 			}
 		}
-		if (mobileProgramCover) {
-			if (programCoverVisible) {
-				if (programCoverSrc) {
-					setImageSrcIfChanged(mobileProgramCover, programCoverSrc);
-				}
-				mobileProgramCover.classList.add('is-visible');
-			} else {
-				mobileProgramCover.classList.remove('is-visible');
+
+		// If main started a cycle, mirror it locally
+		if (programCoverCycleActive && overlaySrc) {
+			const programTitle = data.show?.title || '';
+			if (this._stickyLastProgramTitle !== programTitle || !this._stickyProgramIntervalId) {
+				this.startStickyProgramCycle(baseCoverSrc, overlaySrc, programTitle);
 			}
 		}
-
-		// Update show title
-		const showTitle = data.show?.title || 'Loading...';
-		const desktopTitle = document.getElementById('sticky-show-title-desktop');
-		const mobileTitle = document.getElementById('sticky-show-title-mobile');
-		
-		if (desktopTitle) desktopTitle.textContent = showTitle;
-		if (mobileTitle) mobileTitle.textContent = showTitle;
-
-		// Update song info
-		const songTitle = data.trackInfo?.title || '';
-		const artistName = data.trackInfo?.artist || '';
-		const songInfo = songTitle && artistName ? `${songTitle} - ${artistName}` : (songTitle || artistName || '-');
-		
-		const desktopSongInfo = document.getElementById('sticky-song-info-desktop');
-		if (desktopSongInfo) desktopSongInfo.textContent = songInfo;
-
-		console.log('[STICKY-PLAYER] Metadata updated:', { showTitle, songInfo, cover: coverSrc, programCoverVisible, programCoverSrc });
 	}
 }
 
