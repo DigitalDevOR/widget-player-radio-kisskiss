@@ -23,6 +23,13 @@
 	overflow: hidden;
 	min-height: 100vh;
 }
+
+@media (max-width: 768px) {
+	.kisskiss-player-main {
+		padding: 0px;
+	}
+}
+
 .kisskiss-player-container {
 	width: 100%;
 	max-width: 1152px;

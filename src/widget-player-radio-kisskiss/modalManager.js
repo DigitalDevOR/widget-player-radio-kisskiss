@@ -3,7 +3,7 @@
  * Funzioni per gestire il radio modal e renderizzare le stazioni
  */
 
-export function initializeRadioModal(getRadioStations, onSelectStation) {
+export function initializeRadioModal(radioStations) {
 	const modal = document.getElementById('kisskiss-radio-modal');
 	const openButtons = document.querySelectorAll('#select-radio-btn');
 	const closeButton = document.getElementById('kisskiss-modal-close');
@@ -15,7 +15,17 @@ export function initializeRadioModal(getRadioStations, onSelectStation) {
 
 	if (!modal || !stationsGrid) return;
 
-	let selectedStationIndex = null;
+	// Precarica le immagini in cache del browser (array mantiene i riferimenti in memoria)
+	const preloadedImages = radioStations
+		.filter(station => station.img)
+		.map(station => {
+			const img = new Image();
+			img.src = station.img;
+			return img;
+		});
+
+	let activeStationIndex = radioStations.findIndex(r => r.default === true);
+	let selectedStationIndex = activeStationIndex;
 	let touchStartY = 0;
 	let touchCurrentY = 0;
 	let isDragging = false;
@@ -30,18 +40,17 @@ export function initializeRadioModal(getRadioStations, onSelectStation) {
 	function closeModal() {
 		modal.classList.add('hidden');
 		document.body.style.overflow = '';
-		selectedStationIndex = null;
+		selectedStationIndex = activeStationIndex;
 		isDragging = false;
 		resetModalPosition();
 	}
 
 	window.renderRadioStations = function() {
-		const radioStations = getRadioStations();
 		stationsGrid.innerHTML = '';
 		radioStations.forEach((station, index) => {
 			const card = document.createElement('div');
-			card.className = `kisskiss-station-card ${station.isActive ? 'active' : ''}`;
-			let logoSrc = station.logo && station.logo.trim() ? station.logo : window.kisskissData.pluginUrl + 'logo.png';
+			card.className = `kisskiss-station-card ${index === selectedStationIndex ? 'active' : ''}`;
+			let logoSrc = station.img && station.img.trim() ? station.img : window.kisskissData.pluginUrl + 'logo.png';
 			const playIcon = window.kisskissData.pluginUrl + 'play.svg';
 			card.innerHTML = `
 				<div class="kisskiss-station-logo">
@@ -49,7 +58,6 @@ export function initializeRadioModal(getRadioStations, onSelectStation) {
 				</div>
 				<div class="kisskiss-station-info">
 					<h3>${station.name}</h3>
-					<p>${station.description}</p>
 				</div>
 				<div class="kisskiss-station-check">
 					<img src="${playIcon}" alt="Play" class="kisskiss-play-icon">
@@ -64,7 +72,6 @@ export function initializeRadioModal(getRadioStations, onSelectStation) {
 
 			stationsGrid.appendChild(card);
 		});
-		console.log('[RADIO] Station grid renderizzato:', radioStations.length, 'stazioni');
 	};
 
 	openButtons.forEach(btn => {
@@ -81,13 +88,10 @@ export function initializeRadioModal(getRadioStations, onSelectStation) {
 	modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
 	// Drag to dismiss per mobile
-	console.log('[RADIO-DRAG] Drag handle trovato:', !!dragHandle, '[RADIO-DRAG] Modal container trovato:', !!modalContainer);
-
 	if (dragHandle) {
 		dragHandle.addEventListener('touchstart', (e) => {
 			touchStartY = e.touches[0].clientY;
 			isDragging = true;
-			console.log('[RADIO-DRAG] Touch start:', touchStartY);
 		}, false);
 	}
 
@@ -125,7 +129,10 @@ export function initializeRadioModal(getRadioStations, onSelectStation) {
 
 	confirmButton.addEventListener('click', () => {
 		if (selectedStationIndex !== null) {
-			onSelectStation(selectedStationIndex);
+			activeStationIndex = selectedStationIndex;
+			const selectedRadio = radioStations[selectedStationIndex];
+			console.log('[RADIO_SELECTED_EVENT]', selectedRadio);
+			document.dispatchEvent(new CustomEvent('RADIO_SELECTED_EVENT', { detail: selectedRadio }));
 			closeModal();
 		}
 	});

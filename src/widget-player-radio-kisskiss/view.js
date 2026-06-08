@@ -1,234 +1,216 @@
-/**
- * view.js (modulare)
- * Orchestratore: importa piccoli moduli e inizializza il player
- */
+/*
+	event dispatched in this fcode:
 
-import { pollingManager } from './pollingManager';
-import { initializeAudioPlayer } from './audioPlayer';
-import { loadRadioStations, loadRadioPrograms } from './stationLoader';
-import { handleProgramTitleChange, resetProgramsManager, getProgramCoverState } from './programsManager';
+	DEFAUL_RADIO_METADATA_UPDATED', {
+		trackMetadati: trackMetadati,
+		showMetadati: showMetadati
+	}
+
+
+*/
+
+
+import webradioData from '../../data/webradio.json';
+import kisskissPrograms from '../../data/kisskiss-programs.json';
 import { initializeRadioModal } from './modalManager';
-import { setCoverImageSmoothly, setImageSrcIfChanged } from './coverTransition';
+import { initializeAudioPlayer } from './audioPlayer';
+import { initializeUiManager } from './uiManager';
 
-let DEFAULT_STATION_INDEX = 0;
-let radioStations = [];
-let currentStationIndex = 0;
-let radioPrograms = [];
+const POLLING_TIME_ITERATION = 5000;
+var defaultRadioPollingResult = {};
+var notDefaultRadioPollingResult = {};
+var notDefaultRadioFlag = false;
+var selectedWebRadio = {};
+var selectedStreamAudioUrl = '';
 
-// Crea callback che aggiorna UI e coordina program manager
-const createUpdateMetadataCallback = (endpoint) => {
-	return (data) => {
-		// Verifica se l'endpoint può aggiornare (solo la stazione attiva)
-		const currentStation = radioStations[currentStationIndex];
-		const isDefaultActive = currentStationIndex === DEFAULT_STATION_INDEX;
-		const defaultEndpoint = radioStations[DEFAULT_STATION_INDEX]?.pollingApiEndpoint || '';
+function setDefaultPlayerUi() {
+	// Attiva modalità default: mostra cover show/traccia alternata ogni 5s con logo KissKiss
+	document.dispatchEvent(new CustomEvent('SET_UI_MODE_DEFAULT'));
+}
 
-		if (isDefaultActive) {
-			if (endpoint !== defaultEndpoint) return;
-		} else {
-			const stationEndpoint = currentStation?.pollingApiEndpoint;
-			if (!stationEndpoint || stationEndpoint.trim() === '' || endpoint !== stationEndpoint) return;
+function setNotDefaultPlayerUi() {
+	// Attiva modalità non-default: mostra CTA con dati polling default + non-default
+	document.dispatchEvent(new CustomEvent('SET_UI_MODE_NOT_DEFAULT', { detail: notDefaultRadioPollingResult }));
+}
+
+function setPlayerOndefault() {
+	//set player su stream default
+	const defaultRadio = getDefaultRadio();
+	selectedStreamAudioUrl = defaultRadio.url;
+	document.dispatchEvent( new CustomEvent('SET_URL_STREAMING_AUDIO', {detail: selectedStreamAudioUrl}))
+	setDefaultPlayerUi();
+}
+
+function setPlayerOnNotDefaultRadio(selectedRadio) {
+	selectedStreamAudioUrl = selectedRadio.url;
+	document.dispatchEvent( new CustomEvent('SET_URL_STREAMING_AUDIO', {detail: selectedStreamAudioUrl}))
+	setNotDefaultPlayerUi();
+}
+//INDIPENDENT FUNCTION IT CAN RUN IN EVERY MOMENT AND IT HAVE TO WORK EVERYTIME
+function getRadioList() {
+	return webradioData;
+}
+
+//return object ora false
+function getDefaultRadio() {
+	const webradios = getRadioList();
+	let result = false;
+
+	for (const radio of webradios) {
+		if (radio?.default === true) {
+			result = radio;
+			break;
 		}
+	}
 
-		const coverImage = document.getElementById('main-cover');
-		const programTitleOverlay = document.getElementById('overlay-current-program-title');
-		const spanTitle = document.getElementById('program-title');
-		const spanTime = document.getElementById('program-time');
-		const songArtist = document.getElementById('song-artist');
-		const songArtis2 = document.getElementById('song-artist-2');
-		const songTitle = document.getElementById('song-title');
-		let mainCoverSrc = '';
+	return result;
+}
 
-		if (coverImage) {
-			let artworkUrl = data.trackInfo?.artwork;
-			const isValidArtwork = artworkUrl && typeof artworkUrl === 'string' && artworkUrl.trim().length > 0 && artworkUrl.trim().toLowerCase() !== 'null';
-			const stationLogo = radioStations[currentStationIndex]?.logo || window.kisskissData.pluginUrl + 'logo.png';
-			mainCoverSrc = isValidArtwork ? artworkUrl.trim() : stationLogo;
-			setCoverImageSmoothly(coverImage, mainCoverSrc);
-		}
+//return string if ok or bool false, accept in input radio object
+function getApiPollingUrlOfRadio(radio) {
+	if (radio?.pollingApiEndpoint) {
+		return radio.pollingApiEndpoint;
+	}
+	return false;
+}
 
-		if (programTitleOverlay) programTitleOverlay.textContent = data.show?.title || '';
-		if (spanTitle) spanTitle.textContent = data.show?.title || '';
-		if (songArtist) songArtist.textContent = data.trackInfo?.artist || '';
-		if (songArtis2) songArtis2.textContent = data.trackInfo?.artist || '';
-		if (songTitle) songTitle.textContent = data.trackInfo?.title || '';
-
-		// Gestione ora/slot se presenti
-		if (spanTime && data.show && data.show.schedule) {
-			try {
-				const startTime = data.show.schedule.start || '00:00';
-				const endTime = data.show.schedule.end || '00:00';
-				const [sh, sm] = startTime.split(':').map(Number);
-				const [eh, em] = endTime.split(':').map(Number);
-				const roundedStart = (sm > 0) ? sh + 1 : sh;
-				const roundedEnd = (em > 0) ? eh + 1 : eh;
-				spanTime.textContent = `dalle ${roundedStart.toString().padStart(2,'0')}:00 alle ${roundedEnd.toString().padStart(2,'0')}:00`;
-			} catch (e) {
-				// ignore
+//get show image cover if is in kisskiss-programs.json
+function getShowCoverImageUrl(showName) {
+	if(kisskissPrograms) {
+		for(const program of kisskissPrograms) {
+			if(program.title.toUpperCase() === showName.toUpperCase()) {
+				return program.cover_url;
+				break;
 			}
 		}
 
-		// Delego la logica di mostrare temporaneamente la copertina al modules/programsManager
-		handleProgramTitleChange(data, radioPrograms);
-
-		// Dispatch sempre i metadati base con stato overlay programma incluso
-		const programCoverState = getProgramCoverState();
-		console.log('[VIEW] Dispatching metadata 1:', data);
-		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', {
-			detail: {
-				data,
-				programCoverVisible: programCoverState.visible,
-				programCoverSrc: programCoverState.coverSrc,
-				programCoverCycleActive: !!programCoverState.cycleActive,
-			},
-		}))
-	};
-};
-
-function initializePolling() {
-	const defaultStation = radioStations[DEFAULT_STATION_INDEX];
-	const defaultEndpoint = defaultStation?.pollingApiEndpoint || '';
-
-	if (defaultEndpoint && defaultEndpoint.trim() !== '') {
-		pollingManager.start(defaultEndpoint, createUpdateMetadataCallback(defaultEndpoint));
+		return false;
 	}
 }
 
-// Aggiorna polling quando cambia stazione
-window.updateStationPolling = (stationIndex) => {
-	if (!radioStations[stationIndex]) return;
-	const station = radioStations[stationIndex];
-	const endpoint = station.pollingApiEndpoint;
-
-	if (stationIndex === DEFAULT_STATION_INDEX) {
-		if (radioStations[DEFAULT_STATION_INDEX]?.pollingApiEndpoint) {
-			const defaultEndpoint = radioStations[DEFAULT_STATION_INDEX].pollingApiEndpoint;
-			// Forza il restart del polling di default così il timer copertina riparte anche dopo un rientro
-			pollingManager.stopAllExcept(defaultEndpoint);
-			pollingManager.stop(defaultEndpoint);
-			pollingManager.start(defaultEndpoint, createUpdateMetadataCallback(defaultEndpoint));
-		} else {
-			pollingManager.stopAll();
+//return json response or false
+async function fetchUrl(url) {
+	try {
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
 		}
-		return;
+		return await response.json();
+	} catch (error) {
+		console.error('Error fetching URL:', error);
+		return false;
+	}
+}
+
+//take metadati in input parse and dispatch them with a custom event 
+function assignAndDispatchDefaultRadioMetaDatas (data) {
+	let trackMetadati = data.trackInfo;
+	let showMetadati = data.show;
+
+	//Recupero url della cover dello how in corso e lo assegno a showMetadati
+	if(showMetadati) {
+		const showName = showMetadati.title;
+		const showCoverImageUrl = getShowCoverImageUrl(showName);
+		if(showCoverImageUrl) {
+			showMetadati.artwork = showCoverImageUrl;
+		}	
 	}
 
-	if (endpoint && endpoint.trim() !== '') {
-		pollingManager.start(endpoint, createUpdateMetadataCallback(endpoint));
+	if (data !== defaultRadioPollingResult) {
+		defaultRadioPollingResult = data;
+		document.dispatchEvent( new CustomEvent('DEFAULT_RADIO_METADATA_UPDATED', {
+			detail: { trackMetadati, showMetadati }
+		}) )
+	}
+}
+
+function assignAndDispatchNotDefaultRadioMetaDatas (data){
+	const trackMetadati = data.trackInfo;
+
+	document.dispatchEvent( new CustomEvent('NOT_DEFAULT_RADIO_METADATA_UPDATED', {
+		detail: { trackMetadati }
+	}) )
+}
+
+//every POLLING_TIME_ITERATION run fetchUrl() and then assignAndDispatchDefaultRadioMetaDatas()
+function startDeafaultRadioPolling() {
+	const defaultRadio = getDefaultRadio();
+	const pollingUrl = getApiPollingUrlOfRadio(defaultRadio);
+
+	if (defaultRadio && pollingUrl) {
+		setInterval(async () => {
+			const data = await fetchUrl(pollingUrl);
+			if (data) console.log('[startDeafaultRadioPolling]', data);
+			assignAndDispatchDefaultRadioMetaDatas(data)
+		}, POLLING_TIME_ITERATION);
+	}
+
+	return false;
+}
+
+var notDefaultRadioPollingInterval = null;
+
+function startWebRadioPolling(radio) {
+	if (notDefaultRadioPollingInterval !== null) {
+		clearInterval(notDefaultRadioPollingInterval);
+		notDefaultRadioPollingInterval = null;
+	}
+
+	const pollingUrl = getApiPollingUrlOfRadio(radio);
+	if (!radio || !pollingUrl) return false;
+
+	notDefaultRadioPollingInterval = setInterval(async () => {
+		const data = await fetchUrl(pollingUrl);
+		if (data) assignAndDispatchNotDefaultRadioMetaDatas(data);
+	}, POLLING_TIME_ITERATION);
+
+	return true;
+}
+
+//open webRadiosModal
+function openWebRadiosModal() {
+	document.dispatchEvent(new CustomEvent('OPEN_RADIOS_MODAL'));
+}
+
+//close webRadiosModal
+function closeWebRadiosModal() {
+	document.dispatchEvent(new CustomEvent('CLOSE_RADIOS_MODAL'));
+}
+
+function manageChangedRadio(selectedRadio) {
+	console.log('[view manageChangedRadio selectedRadio]', selectedRadio);
+	if(!selectedRadio.default){
+		//aggiorno notDefaultRadioPollingResult
+		notDefaultRadioPollingResult = selectedRadio;
+		setPlayerOnNotDefaultRadio(selectedRadio);
+		startWebRadioPolling(selectedRadio);
 	} else {
-		// station without endpoint: ensure others stopped
-		console.log('[POLLING] Stazione senza endpoint selezionata');
-	}
-};
-
-// Quando l'utente seleziona una stazione dal modal
-function onSelectStation(selectedStationIndex) {
-	const selectedStation = radioStations[selectedStationIndex];
-	const isDefaultStation = selectedStationIndex === DEFAULT_STATION_INDEX;
-
-	const coverImage = document.getElementById('main-cover');
-	if (coverImage) {
-		if (isDefaultStation) {
-			setCoverImageSmoothly(coverImage, radioStations[DEFAULT_STATION_INDEX].logo || window.kisskissData.pluginUrl + 'logo.png');
-		} else if (selectedStation.logo) {
-			setCoverImageSmoothly(coverImage, selectedStation.logo);
+		//setto il player audio su default
+		if (notDefaultRadioPollingInterval !== null) {
+			clearInterval(notDefaultRadioPollingInterval);
+			notDefaultRadioPollingInterval = null;
 		}
+		setPlayerOndefault();
 	}
-
-	const audioPlayer = document.getElementById('kisskiss-audio-player');
-	if (audioPlayer) {
-		const sourceElement = audioPlayer.querySelector('source');
-		setImageSrcIfChanged(sourceElement, selectedStation.url);
-		audioPlayer.load();
-		audioPlayer.play().catch(() => {});
-	}
-
-	radioStations.forEach((s, idx) => s.isActive = idx === selectedStationIndex);
-	currentStationIndex = selectedStationIndex;
-
-	// Reset program manager when station changes
-	resetProgramsManager();
-
-	// Aggiorna polling
-	window.updateStationPolling(selectedStationIndex);
-
-	// If returning to default, ensure default polling is active and dispatch last known metadata
-	if (isDefaultStation) {
-		const defaultEndpoint = radioStations[DEFAULT_STATION_INDEX]?.pollingApiEndpoint || '';
-		if (defaultEndpoint && defaultEndpoint.trim() !== '') {
-			// Start default polling if not active
-			if (!pollingManager.activePollings[defaultEndpoint]) {
-				console.log('[POLLING] Riavvio polling per stazione di default:', radioStations[DEFAULT_STATION_INDEX].name);
-				pollingManager.start(defaultEndpoint, createUpdateMetadataCallback(defaultEndpoint));
-			}
-			// Dispatch last known data if available to sync sticky, otherwise send station logo
-			const last = pollingManager.activePollings[defaultEndpoint]?.lastData || null;
-			const cover = last?.trackInfo?.artwork || radioStations[DEFAULT_STATION_INDEX].logo || window.kisskissData.pluginUrl + 'logo.png';
-			const dataToDispatch = last || { show: { title: radioStations[DEFAULT_STATION_INDEX].name }, trackInfo: { artwork: cover, artist: '', title: '' } };
-				console.log('[VIEW] Refreshing default metadata via callback:', dataToDispatch);
-				createUpdateMetadataCallback(defaultEndpoint)(dataToDispatch);
-		} else {
-			// No default endpoint: still dispatch logo so sticky updates
-			const cover = radioStations[DEFAULT_STATION_INDEX].logo || window.kisskissData.pluginUrl + 'logo.png';
-				const fallbackData = { show: { title: radioStations[DEFAULT_STATION_INDEX].name }, trackInfo: { artwork: cover, artist: '', title: '' } };
-				console.log('[VIEW] Refreshing default metadata via callback (no endpoint):', fallbackData);
-				createUpdateMetadataCallback(defaultEndpoint)(fallbackData);
-		}
-	}
-
-	// Gestione visibilità metadati
-	const titlesElement = document.querySelector('.kisskiss-titles');
-	const liveIndicator = document.querySelector('.kisskiss-live-indicator');
-	if (isDefaultStation) {
-		if (titlesElement) titlesElement.classList.remove('hidden');
-		if (liveIndicator) liveIndicator.classList.remove('cta');
-		// dispatch metadata for default station if needed
-	} else {
-		if (titlesElement) titlesElement.classList.add('hidden');
-		if (liveIndicator) liveIndicator.classList.add('cta');
-		// dispatch metadata update for non-default station so sticky shows station name/logo
-		console.log('[VIEW] Dispatching metadata 4:', { show: { title: selectedStation.name }, trackInfo: { artwork: selectedStation.logo, artist: '', title: '' } });
-		document.dispatchEvent(new CustomEvent('kisskiss-metadata-update', { detail: {
-			data: {
-				show: { title: selectedStation.name },
-				trackInfo: { artwork: selectedStation.logo, artist: '', title: '' },
-				mainCoverSrc: selectedStation.logo || window.kisskissData.pluginUrl + 'logo.png'
-			}
-		} }));
-	}
+	return null;
 }
 
-// Inizializzazione principale
-async function mainInit() {
-	const pluginUrl = window.kisskissData?.pluginUrl || '';
-	const stationsResult = await loadRadioStations(pluginUrl);
-	radioStations = stationsResult.stations || [];
-	DEFAULT_STATION_INDEX = stationsResult.defaultIndex || 0;
-	currentStationIndex = DEFAULT_STATION_INDEX;
-
-	// Imposta stream della stazione di default
-	const audioPlayer = document.getElementById('kisskiss-audio-player');
-	if (audioPlayer && radioStations[DEFAULT_STATION_INDEX]) {
-		const sourceElement = audioPlayer.querySelector('source');
-		setImageSrcIfChanged(sourceElement, radioStations[DEFAULT_STATION_INDEX].url);
-	}
-
-	radioPrograms = await loadRadioPrograms(pluginUrl);
-
-	// Inizializza componenti
-	initializeAudioPlayer();
-	initializePolling();
-	initializeRadioModal(() => radioStations, onSelectStation);
-
-	console.log('[VIEW] Inizializzazione completata');
-}
-
-if (document.readyState === 'loading') {
-	document.addEventListener('DOMContentLoaded', mainInit);
-	document.addEventListener('DOMContentLoaded', () => {
-		const iubendaButton = document.querySelector('.iubenda-tp-btn iubenda-cs-preferences-link');
-		iubendaButton.style.setProperty('margin-bottom', '100px', 'important');
+function customEventsListener() {
+	console.log('[customEventListeners], loading events litener')
+	document.addEventListener('RADIO_SELECTED_EVENT', (e) => {
+		const radio = e.detail;
+		manageChangedRadio(radio);
 	});
-} else {
-	mainInit();
 }
+
+addEventListener('DOMContentLoaded', () => {
+	console.log('[initializing initializeAudioPlayer]', initializeAudioPlayer());
+	console.log('[view, setPlayerOndefault]', setPlayerOndefault());
+	console.log('[view, getRadioList]', getRadioList());
+	console.log('[view, getDefaultRadio]', getDefaultRadio());
+	console.log('[view getApiPollingUrlOfRadio]', getApiPollingUrlOfRadio(getDefaultRadio()));
+	console.log('[view startDeafaultRadioPolling]', startDeafaultRadioPolling());
+	console.log('[view customEventsListener]', customEventsListener());
+	initializeUiManager();
+	initializeRadioModal(getRadioList());
+})

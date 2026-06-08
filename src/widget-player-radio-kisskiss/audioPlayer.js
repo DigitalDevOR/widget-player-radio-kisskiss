@@ -92,5 +92,17 @@ export function initializeAudioPlayer() {
 		document.dispatchEvent(new CustomEvent('kisskiss-pause'));
 	});
 
+	document.addEventListener('SET_URL_STREAMING_AUDIO', (e) => {
+		console.log('audioPlayer ho intercettato il change radio', e);
+		const url = e.detail;
+		if (!url) return;
+		const sourceElement = audioPlayer.querySelector('source');
+		sourceElement.src = url + '?t=' + Date.now();
+		audioPlayer.load();
+		audioPlayer.play().catch(err => {
+			console.error('[AUDIO] Errore durante play dopo cambio URL:', err);
+		});
+	});
+
 	return audioPlayer;
 }
