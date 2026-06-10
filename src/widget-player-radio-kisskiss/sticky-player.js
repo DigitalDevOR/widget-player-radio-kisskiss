@@ -20,13 +20,18 @@ class KisskissStickyPlayer {
 	constructor() {
 		this.mainAudioPlayer = null;
 		this.stickyPlayerWrapper = null;
+		this.currentMode = 'default';
 		this.init();
 	}
 
 	init() {
 		console.log('[STICKY-PLAYER] Initializing with event-driven architecture...');
 
-		// Wait for DOM to be ready
+		// Attach metadata/mode event listeners immediately, regardless of DOM state.
+		// These listen on document and do not require player elements to exist yet.
+		this.attachEventListeners();
+
+		// Bind UI controls once DOM is ready
 		if (document.readyState === 'loading') {
 			document.addEventListener('DOMContentLoaded', () => this.setup());
 		} else {
@@ -38,20 +43,22 @@ class KisskissStickyPlayer {
 		this.stickyPlayerWrapper = document.getElementById('kisskiss-sticky-player-wrapper');
 		this.mainAudioPlayer = document.getElementById('kisskiss-audio-player');
 
-		if (!this.stickyPlayerWrapper || !this.mainAudioPlayer) {
-			console.error('[STICKY-PLAYER] Required elements not found');
+		if (!this.stickyPlayerWrapper) {
+			console.warn('[STICKY-PLAYER] Sticky wrapper not found');
+		}
+
+		if (!this.mainAudioPlayer) {
+			console.warn('[STICKY-PLAYER] Audio player element not found - play controls disabled');
 			return;
 		}
 
 		// Sync initial play/pause icon state
-		if (this.mainAudioPlayer) {
-			const isPlaying = !this.mainAudioPlayer.paused;
-			this.updatePlayIcon(isPlaying);
-			console.log('[STICKY-PLAYER] Initial play state:', isPlaying);
-		}
+		const isPlaying = !this.mainAudioPlayer.paused;
+		this.updatePlayIcon(isPlaying);
+		console.log('[STICKY-PLAYER] Initial play state:', isPlaying);
 
-		this.attachEventListeners();
-		console.log('[STICKY-PLAYER] Event listeners attached');
+		this.attachButtonListeners();
+		console.log('[STICKY-PLAYER] Button listeners attached');
 	}
 
 	attachEventListeners() {
@@ -67,20 +74,70 @@ class KisskissStickyPlayer {
 			this.updatePlayIcon(false);
 		});
 
-		// Listen for volume change from view.js
+		// Listen for volume change from audioPlayer.js
 		document.addEventListener('kisskiss-volume-change', (e) => {
 			console.log('[STICKY-PLAYER] Volume change event:', e.detail.volume);
 			this.updateVolume(e.detail.volume);
 		});
 
-		// Listen for metadata update from view.js
-		document.addEventListener('kisskiss-metadata-update', (e) => {
-			console.log('[STICKY-PLAYER] Metadata update event:', e.detail.data);
-			this.updateMetadata(e.detail);
+		// ── Modalità default (radio KissKiss principale) ────────────────────
+		document.addEventListener('SET_UI_MODE_DEFAULT', () => {
+			console.log('[STICKY-PLAYER] Mode: default');
+			this.currentMode = 'default';
+			const logoUrl = (window.kisskissData?.pluginUrl || '') + 'logo.png';
+			this.setBaseCover(logoUrl);
 		});
 
-		// Attach local button listeners
-		this.attachButtonListeners();
+		// ── Modalità non-default (altra radio selezionata) ──────────────────
+		document.addEventListener('SET_UI_MODE_NOT_DEFAULT', (e) => {
+			console.log('[STICKY-PLAYER] Mode: not-default', e.detail);
+			this.currentMode = 'not-default';
+			const selectedRadio = e.detail;
+			if (selectedRadio?.img) {
+				this.setBaseCover(selectedRadio.img);
+			}
+			if (selectedRadio?.name) {
+				this.updateShowTitle(selectedRadio.name);
+			}
+			this.updateSongInfo('', '');
+		});
+
+		// ── Metadata radio default (sempre aggiornato, entrambe le modalità) 
+		document.addEventListener('DEFAULT_RADIO_METADATA_UPDATED', (e) => {
+			console.log('[STICKY-PLAYER] DEFAULT_RADIO_METADATA_UPDATED', e.detail);
+			const { trackMetadati, showMetadati } = e.detail || {};
+
+			// Titolo show sempre visibile (come uiManager)
+			if (showMetadati?.title) {
+				this.updateShowTitle(showMetadati.title);
+			}
+
+			if (this.currentMode === 'default') {
+				// Aggiorna sempre, anche con stringa vuota, per pulire i valori precedenti
+				this.updateSongInfo(trackMetadati?.artist || '', trackMetadati?.title || '');
+				// Artwork traccia: se null torna al logo
+				if (trackMetadati?.artwork) {
+					this.setBaseCover(trackMetadati.artwork);
+				} else {
+					const logoUrl = (window.kisskissData?.pluginUrl || '') + 'logo.png';
+					this.setBaseCover(logoUrl);
+				}
+				// Aggiorna src overlay programma (visibilità gestita da programsManager)
+				if (showMetadati?.artwork) {
+					this.setOverlayCoverSrc(showMetadati.artwork);
+				}
+			}
+		});
+
+		// ── Metadata radio non-default (solo info traccia) ──────────────────
+		document.addEventListener('NOT_DEFAULT_RADIO_METADATA_UPDATED', (e) => {
+			console.log('[STICKY-PLAYER] NOT_DEFAULT_RADIO_METADATA_UPDATED', e.detail);
+			const { trackMetadati } = e.detail || {};
+			if (!trackMetadati) return;
+			if (this.currentMode === 'not-default') {
+				this.updateSongInfo(trackMetadati.artist, trackMetadati.title);
+			}
+		});
 
 		console.log('[STICKY-PLAYER] All event listeners attached');
 	}
@@ -199,52 +256,39 @@ class KisskissStickyPlayer {
 		}
 	}
 
-	updateMetadata(detail) {
-		const data = detail.data || detail;
+	// ── Helper methods ──────────────────────────────────────────────────────
 
-		const showTitleDesktop = document.getElementById('sticky-show-title-desktop');
-		const showTitleMobile = document.getElementById('sticky-show-title-mobile');
-		const songInfoDesktop = document.getElementById('sticky-song-info-desktop');
+	setBaseCover(src) {
+		if (!src) return;
 		const desktopCover = document.getElementById('sticky-player-cover-desktop');
-		const mobileCover = document.getElementById('sticky-player-cover-mobile');
-		const desktopProgramCover = document.getElementById('sticky-program-cover-desktop');
-		const mobileProgramCover = document.getElementById('sticky-program-cover-mobile');
+		const mobileCover  = document.getElementById('sticky-player-cover-mobile');
+		if (desktopCover) setImageSrcIfChanged(desktopCover, src);
+		if (mobileCover)  setImageSrcIfChanged(mobileCover, src);
+		console.log('[STICKY-PLAYER] Base cover updated:', src);
+	}
 
-		const showTitle = data.show?.title || '';
-		const artist = data.trackInfo?.artist || '';
-		const title = data.trackInfo?.title || '';
-		const artwork = data.trackInfo?.artwork || '';
+	setOverlayCoverSrc(src) {
+		if (!src) return;
+		const desktopOverlay = document.getElementById('sticky-program-cover-desktop');
+		const mobileOverlay  = document.getElementById('sticky-program-cover-mobile');
+		if (desktopOverlay) setImageSrcIfChanged(desktopOverlay, src);
+		if (mobileOverlay)  setImageSrcIfChanged(mobileOverlay, src);
+	}
 
-		if (showTitleDesktop) showTitleDesktop.textContent = showTitle;
-		if (showTitleMobile) showTitleMobile.textContent = showTitle;
+	updateShowTitle(title) {
+		const desktopTitle = document.getElementById('sticky-show-title-desktop');
+		const mobileTitle  = document.getElementById('sticky-show-title-mobile');
+		if (desktopTitle) desktopTitle.textContent = title || '';
+		if (mobileTitle)  mobileTitle.textContent  = title || '';
+	}
 
-		if (songInfoDesktop) {
-			if (artist && title) songInfoDesktop.textContent = `${artist} - ${title}`;
-			else if (artist) songInfoDesktop.textContent = artist;
-			else if (title) songInfoDesktop.textContent = title;
-			else songInfoDesktop.textContent = '';
-		}
-
-		// Flags and sources sent by view/programsManager
-		const programCoverVisible = !!detail.programCoverVisible;
-		const programCoverSrc = detail.programCoverSrc || '';
-		const programCoverCycleActive = !!detail.programCoverCycleActive;
-
-		const defaultLogo = window.kisskissData?.pluginUrl ? window.kisskissData.pluginUrl + 'logo.png' : '';
-		const trackArtwork = (artwork && String(artwork).trim().toLowerCase() !== 'null') ? artwork : '';
-		const mainCoverSrc = detail.mainCoverSrc || '';
-
-		// base cover: the actual main cover source emitted by view.js, then the current track artwork, then default logo
-		const baseCoverSrc = mainCoverSrc || trackArtwork || defaultLogo;
-		const overlaySrc = programCoverSrc || '';
-
-		// set base covers
-		if (desktopCover && baseCoverSrc) setImageSrcIfChanged(desktopCover, baseCoverSrc);
-		if (mobileCover && baseCoverSrc) setImageSrcIfChanged(mobileCover, baseCoverSrc);
-
-		// Update sticky overlay sources only; visibility is handled centrally in programsManager.js
-		if (desktopProgramCover && overlaySrc) setImageSrcIfChanged(desktopProgramCover, overlaySrc);
-		if (mobileProgramCover && overlaySrc) setImageSrcIfChanged(mobileProgramCover, overlaySrc);
+	updateSongInfo(artist, title) {
+		const songInfoDesktop = document.getElementById('sticky-song-info-desktop');
+		if (!songInfoDesktop) return;
+		if (artist && title)   songInfoDesktop.textContent = `${artist} - ${title}`;
+		else if (artist)       songInfoDesktop.textContent = artist;
+		else if (title)        songInfoDesktop.textContent = title;
+		else                   songInfoDesktop.textContent = '';
 	}
 }
 

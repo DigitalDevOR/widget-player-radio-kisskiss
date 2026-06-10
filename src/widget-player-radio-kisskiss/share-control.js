@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== DRAG TO DISMISS PER MOBILE ==========
     const modalContainer = shareModal.querySelector('.kisskiss-modal-container');
     const dragHandle = shareModal.querySelector('.kisskiss-drag-handle');
+    const modalHeader = shareModal.querySelector('.kisskiss-modal-header');
     let touchStartY = 0;
     let touchCurrentY = 0;
     let isDragging = false;
@@ -91,13 +92,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('[SHARE-DRAG] Drag handle trovato:', !!dragHandle, '[SHARE-DRAG] Modal container trovato:', !!modalContainer);
 
-    if (dragHandle) {
-        dragHandle.addEventListener('touchstart', (e) => {
+    // touchstart registrato su dragHandle + header per target più ampio
+    const touchStartTargets = [dragHandle, modalHeader].filter(Boolean);
+    touchStartTargets.forEach(el => {
+        el.addEventListener('touchstart', (e) => {
             touchStartY = e.touches[0].clientY;
+            touchCurrentY = e.touches[0].clientY;
             isDragging = true;
             console.log('[SHARE-DRAG] Touch start:', touchStartY);
-        }, false);
-    }
+        }, { passive: true });
+    });
 
     if (modalContainer) {
         modalContainer.addEventListener('touchmove', (e) => {
@@ -140,6 +144,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     modalContainer.style.transition = 'none';
                 }, 300);
             }
+        }, false);
+
+        // Ripristina stato se il browser cancella il touch (es. notifiche, scroll nativo)
+        modalContainer.addEventListener('touchcancel', () => {
+            isDragging = false;
+            modalContainer.style.transition = 'transform 0.3s ease';
+            modalContainer.style.transform = 'translateY(0)';
+            setTimeout(() => { modalContainer.style.transition = 'none'; }, 300);
         }, false);
     }
 

@@ -130,12 +130,21 @@ function setProgramCoverVisible(visible) {
 }
 
 function setProgramCoverSrc(src) {
-	const programCover = getProgramCoverElement();
-	if (!programCover || !src) return;
-	const currentSrc = programCover.getAttribute('src') || '';
-	if (currentSrc !== src) {
-		programCover.setAttribute('src', src);
-	}
+	if (!src) return;
+
+	const targets = [
+		getProgramCoverElement(),
+		getStickyProgramCoverDesktop(),
+		getStickyProgramCoverMobile(),
+	];
+
+	targets.forEach((el) => {
+		if (!el) return;
+		const currentSrc = el.getAttribute('src') || '';
+		if (currentSrc !== src) {
+			el.setAttribute('src', src);
+		}
+	});
 }
 
 function stopProgramCoverCycle(data = lastProgramData, coverSrc = lastProgramCoverSrc) {

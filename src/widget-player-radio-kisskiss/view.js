@@ -26,11 +26,31 @@ var selectedStreamAudioUrl = '';
 function setDefaultPlayerUi() {
 	// Attiva modalità default: mostra cover show/traccia alternata ogni 5s con logo KissKiss
 	document.dispatchEvent(new CustomEvent('SET_UI_MODE_DEFAULT'));
+
+	const defaultRadio = getDefaultRadio();
+	const pollingUrl = getApiPollingUrlOfRadio(defaultRadio);
+
+	fetchUrl(pollingUrl).then(data => {
+		if (data) {
+			console.log('[startDeafaultRadioPolling] initial fetch', data);
+			assignAndDispatchDefaultRadioMetaDatas(data);
+		}
+	});
 }
 
-function setNotDefaultPlayerUi() {
+function setNotDefaultPlayerUi(selectedRadio) {
 	// Attiva modalità non-default: mostra CTA con dati polling default + non-default
 	document.dispatchEvent(new CustomEvent('SET_UI_MODE_NOT_DEFAULT', { detail: notDefaultRadioPollingResult }));
+	const pollingUrl = selectedRadio.pollingApiEndpoint;
+
+	fetchUrl(pollingUrl).then(data => {
+		if (data) {
+			console.log('[startDeafaultRadioPolling] initial fetch', data);
+			assignAndDispatchNotDefaultRadioMetaDatas(data);
+		}
+	});
+
+
 }
 
 function setPlayerOndefault() {
@@ -44,7 +64,7 @@ function setPlayerOndefault() {
 function setPlayerOnNotDefaultRadio(selectedRadio) {
 	selectedStreamAudioUrl = selectedRadio.url;
 	document.dispatchEvent( new CustomEvent('SET_URL_STREAMING_AUDIO', {detail: selectedStreamAudioUrl}))
-	setNotDefaultPlayerUi();
+	setNotDefaultPlayerUi(selectedRadio);
 }
 //INDIPENDENT FUNCTION IT CAN RUN IN EVERY MOMENT AND IT HAVE TO WORK EVERYTIME
 function getRadioList() {
@@ -138,6 +158,14 @@ function startDeafaultRadioPolling() {
 	const pollingUrl = getApiPollingUrlOfRadio(defaultRadio);
 
 	if (defaultRadio && pollingUrl) {
+		// Fetch immediato al caricamento per non aspettare il primo intervallo
+		fetchUrl(pollingUrl).then(data => {
+			if (data) {
+				console.log('[startDeafaultRadioPolling] initial fetch', data);
+				assignAndDispatchDefaultRadioMetaDatas(data);
+			}
+		});
+
 		setInterval(async () => {
 			const data = await fetchUrl(pollingUrl);
 			if (data) console.log('[startDeafaultRadioPolling]', data);

@@ -12,6 +12,7 @@ export function initializeRadioModal(radioStations) {
 	const stationsGrid = document.getElementById('kisskiss-stations-grid');
 	const modalContainer = modal ? modal.querySelector('.kisskiss-modal-container') : null;
 	const dragHandle = modal ? modal.querySelector('.kisskiss-drag-handle') : null;
+	const modalHeader = modal ? modal.querySelector('.kisskiss-modal-header') : null;
 
 	if (!modal || !stationsGrid) return;
 
@@ -88,12 +89,15 @@ export function initializeRadioModal(radioStations) {
 	modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
 	// Drag to dismiss per mobile
-	if (dragHandle) {
-		dragHandle.addEventListener('touchstart', (e) => {
+	// touchstart registrato su dragHandle + header per target più ampio
+	const touchStartTargets = [dragHandle, modalHeader].filter(Boolean);
+	touchStartTargets.forEach(el => {
+		el.addEventListener('touchstart', (e) => {
 			touchStartY = e.touches[0].clientY;
+			touchCurrentY = e.touches[0].clientY;
 			isDragging = true;
-		}, false);
-	}
+		}, { passive: true });
+	});
 
 	if (modalContainer) {
 		modalContainer.addEventListener('touchmove', (e) => {
@@ -125,6 +129,12 @@ export function initializeRadioModal(radioStations) {
 				}, 300);
 			}
 		}, false);
+
+		// Ripristina stato se il browser cancella il touch (es. notifiche, scroll nativo)
+		modalContainer.addEventListener('touchcancel', () => {
+			isDragging = false;
+			resetModalPosition();
+		}, false);
 	}
 
 	confirmButton.addEventListener('click', () => {
@@ -134,6 +144,19 @@ export function initializeRadioModal(radioStations) {
 			console.log('[RADIO_SELECTED_EVENT]', selectedRadio);
 			document.dispatchEvent(new CustomEvent('RADIO_SELECTED_EVENT', { detail: selectedRadio }));
 			closeModal();
+		}
+	});
+
+	// Mantiene activeStationIndex sincronizzato anche quando la selezione avviene
+	// dall'esterno (es. CTA "Torna su Kiss Kiss" in uiManager)
+	document.addEventListener('RADIO_SELECTED_EVENT', (e) => {
+		const radio = e.detail;
+		const idx = radioStations.findIndex(r =>
+			radio?.default === true ? r.default === true : r === radio
+		);
+		if (idx !== -1) {
+			activeStationIndex = idx;
+			selectedStationIndex = idx;
 		}
 	});
 }

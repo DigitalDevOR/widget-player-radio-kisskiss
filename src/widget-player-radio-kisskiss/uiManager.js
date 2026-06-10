@@ -26,6 +26,8 @@ const DOM = {
 	songArtist: null,
 	songArtist2: null,
 	overlayTitle: null,
+	liveIndicator: null,
+	liveText: null,
 
 	init() {
 		this.mainCover     = document.getElementById('main-cover');
@@ -35,18 +37,42 @@ const DOM = {
 		this.songArtist    = document.getElementById('song-artist');
 		this.songArtist2   = document.getElementById('song-artist-2');
 		this.overlayTitle  = document.getElementById('overlay-current-program-title');
+		this.liveIndicator = document.querySelector('.kisskiss-live-indicator');
+		this.liveText      = document.querySelector('.kisskiss-live-text');
 	},
 };
 
 let currentMode = 'default';
 
+function activateDefaultCta() {
+	if (!DOM.liveIndicator) return;
+	DOM.liveIndicator.classList.remove('cta');
+	if (DOM.liveText) DOM.liveText.textContent = 'In Onda Ora';
+}
+
+function activateNotDefaultCta() {
+	if (!DOM.liveIndicator) return;
+	DOM.liveIndicator.classList.add('cta');
+	if (DOM.liveText) DOM.liveText.textContent = '↩ Torna su Kiss Kiss';
+}
+
 export function initializeUiManager() {
 	DOM.init();
+
+	// Listener CTA: attivo sempre, agisce solo in not-default
+	if (DOM.liveIndicator) {
+		DOM.liveIndicator.addEventListener('click', () => {
+			if (currentMode === 'not-default') {
+				document.dispatchEvent(new CustomEvent('RADIO_SELECTED_EVENT', { detail: { default: true } }));
+			}
+		});
+	}
 
 	// ── Default mode ──────────────────────────────────────────────────────────
 	document.addEventListener('SET_UI_MODE_DEFAULT', () => {
 		currentMode = 'default';
 		resetProgramsManager();
+		activateDefaultCta();
 		const logoUrl = window.kisskissData?.pluginUrl + 'logo.png';
 		if (DOM.mainCover) setCoverImageSmoothly(DOM.mainCover, logoUrl);
 	});
@@ -55,17 +81,22 @@ export function initializeUiManager() {
 	document.addEventListener('SET_UI_MODE_NOT_DEFAULT', (e) => {
 		currentMode = 'not-default';
 		resetProgramsManager();
+		activateNotDefaultCta();
 		const selectedRadio = e.detail;
 		if (DOM.mainCover && selectedRadio?.img) {
 			setCoverImageSmoothly(DOM.mainCover, selectedRadio.img);
 		}
+		// Titolo/artista della radio non-default: svuota finché non arriva polling
+		if (DOM.songTitle)   DOM.songTitle.textContent   = selectedRadio?.name || '';
+		if (DOM.songArtist)  DOM.songArtist.textContent  = '';
+		if (DOM.songArtist2) DOM.songArtist2.textContent = '';
 	});
 
 	// ── Default radio metadata (sempre aggiornato, in entrambe le modalità) ───
 	document.addEventListener('DEFAULT_RADIO_METADATA_UPDATED', (e) => {
 		const { trackMetadati, showMetadati } = e.detail || {};
 
-		// Titolo show (sempre visibile indipendentemente dalla modalità)
+		// Titolo show: in default è "In Onda Ora", in not-default è il riferimento per la CTA
 		if (showMetadati?.title) {
 			if (DOM.programTitle) DOM.programTitle.textContent = showMetadati.title;
 			if (DOM.overlayTitle) DOM.overlayTitle.textContent = showMetadati.title;
@@ -85,12 +116,17 @@ export function initializeUiManager() {
 
 		// In modalità default: aggiorna anche traccia + cover + ciclo programma
 		if (currentMode === 'default') {
-			if (trackMetadati?.title  && DOM.songTitle)  DOM.songTitle.textContent  = trackMetadati.title;
-			if (trackMetadati?.artist && DOM.songArtist) DOM.songArtist.textContent = trackMetadati.artist;
-			if (trackMetadati?.artist && DOM.songArtist2) DOM.songArtist2.textContent = trackMetadati.artist;
+			// Aggiorna sempre, anche con stringa vuota, per pulire i valori precedenti
+			if (DOM.songTitle)   DOM.songTitle.textContent   = trackMetadati?.title  || '';
+			if (DOM.songArtist)  DOM.songArtist.textContent  = trackMetadati?.artist || '';
+			if (DOM.songArtist2) DOM.songArtist2.textContent = trackMetadati?.artist || '';
 
-			if (trackMetadati?.artwork && DOM.mainCover) {
+			if (trackMetadati?.artwork) {
 				setCoverImageSmoothly(DOM.mainCover, trackMetadati.artwork);
+			} else {
+				// Nessun artwork traccia: torna al logo default
+				const logoUrl = window.kisskissData?.pluginUrl + 'logo.png';
+				if (DOM.mainCover) setCoverImageSmoothly(DOM.mainCover, logoUrl);
 			}
 
 			handleProgramTitleChange(

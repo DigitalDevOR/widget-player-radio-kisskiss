@@ -52,7 +52,7 @@
         "name": "Love",
         "img": "https://kisskiss.it/wp-content/uploads/2021/03/LOVE.png",
         "url": "https://kk.fluidstream.eu/kk_sanvalentino.mp3",
-        "pollingApiEndpoint": "https://api.kisskiss.it/nowplaying?channel=Kiss%20Kiss%20Love",
+        "pollingApiEndpoint": "https://api.kisskiss.it/nowplaying?channel=Kiss%20Kiss%20San Valentino",
         "default": false
     },
     {
@@ -61,5 +61,27 @@
         "url": "https://kk.fluidstream.eu/kk_sanremo.mp3",
         "pollingApiEndpoint": "https://api.kisskiss.it/nowplaying?channel=Kiss%20Kiss%20Sanremo",
         "default": false
+    },
+    {
+        "name": "Hit",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/HIT-1.png",
+        "url": "https://kk.fluidstream.eu/kk_hits.mp3",
+        "pollingApiEndpoint": "https://api.kisskiss.it/nowplaying?channel=Kiss%20Kiss%20Hit",
+        "default": false
+    },
+    {
+        "name": "Latina",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/latina.png",
+        "url": "https://kk.fluidstream.eu/kk_latina.mp3",
+        "pollingApiEndpoint": "https://api.kisskiss.it/nowplaying?channel=Kiss%20Kiss%20Latina",
+        "default": false
+    },
+    {
+        "name": "Rock",
+        "img": "https://kisskiss.it/wp-content/uploads/2021/03/rock.png",
+        "url": "https://kk.fluidstream.eu/kk_rock.mp3",
+        "pollingApiEndpoint": "https://api.kisskiss.it/nowplaying?channel=Kiss%20Kiss%20Gold%20Rock",
+        "default": false
     }
+    
 ]
