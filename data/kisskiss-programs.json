@@ -1,19 +1,7 @@
 [
     {
-        "title": "Dedikiss",
-        "cover_url": "http://gutenberg-dev.local/wp-content/uploads/2026/05/5-scaled.png",
-        "description": "Copertina dedikiss",
-        "radio_id": 0
-    },
-    {
         "title": "I Corrieri di Kiss Kiss",
         "cover_url": "http://gutenberg-dev.local/wp-content/uploads/2026/05/2-scaled.png",
-        "description": "I Corrieri di Kiss Kiss",
-        "radio_id": 0
-    },
-    {
-        "title": "Good Morning Kiss Kiss",
-        "cover_url": "http://gutenberg-dev.local/wp-content/uploads/2026/05/1-scaled.png",
         "description": "",
         "radio_id": 0
     }

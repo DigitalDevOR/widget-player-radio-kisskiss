@@ -11,10 +11,10 @@
 
 
 import webradioData from '../../data/webradio.json';
-import kisskissPrograms from '../../data/kisskiss-programs.json';
 import { initializeRadioModal } from './modalManager';
 import { initializeAudioPlayer } from './audioPlayer';
 import { initializeUiManager } from './uiManager';
+import { loadRadioPrograms } from './stationLoader';
 
 const POLLING_TIME_ITERATION = 5000;
 var defaultRadioPollingResult = {};
@@ -22,6 +22,7 @@ var notDefaultRadioPollingResult = {};
 var notDefaultRadioFlag = false;
 var selectedWebRadio = {};
 var selectedStreamAudioUrl = '';
+var radioPrograms = [];
 
 function setDefaultPlayerUi() {
 	// Attiva modalità default: mostra cover show/traccia alternata ogni 5s con logo KissKiss
@@ -95,17 +96,15 @@ function getApiPollingUrlOfRadio(radio) {
 }
 
 //get show image cover if is in kisskiss-programs.json
-function getShowCoverImageUrl(showName) {
-	if(kisskissPrograms) {
-		for(const program of kisskissPrograms) {
-			if(program.title.toUpperCase() === showName.toUpperCase()) {
+function getShowCoverImageUrl(showName, programs) {
+	if (Array.isArray(programs)) {
+		for (const program of programs) {
+			if (program.title.toUpperCase() === showName.toUpperCase()) {
 				return program.cover_url;
-				break;
 			}
 		}
-
-		return false;
 	}
+	return false;
 }
 
 //return json response or false
@@ -130,7 +129,7 @@ function assignAndDispatchDefaultRadioMetaDatas (data) {
 	//Recupero url della cover dello how in corso e lo assegno a showMetadati
 	if(showMetadati) {
 		const showName = showMetadati.title;
-		const showCoverImageUrl = getShowCoverImageUrl(showName);
+		const showCoverImageUrl = getShowCoverImageUrl(showName, radioPrograms);
 		if(showCoverImageUrl) {
 			showMetadati.artwork = showCoverImageUrl;
 		}	
@@ -231,7 +230,10 @@ function customEventsListener() {
 	});
 }
 
-addEventListener('DOMContentLoaded', () => {
+addEventListener('DOMContentLoaded', async () => {
+	const pluginUrl = window.kisskissData?.pluginUrl || '';
+	const programs = await loadRadioPrograms(pluginUrl);
+	radioPrograms = programs;
 	console.log('[initializing initializeAudioPlayer]', initializeAudioPlayer());
 	console.log('[view, setPlayerOndefault]', setPlayerOndefault());
 	console.log('[view, getRadioList]', getRadioList());
@@ -239,6 +241,6 @@ addEventListener('DOMContentLoaded', () => {
 	console.log('[view getApiPollingUrlOfRadio]', getApiPollingUrlOfRadio(getDefaultRadio()));
 	console.log('[view startDeafaultRadioPolling]', startDeafaultRadioPolling());
 	console.log('[view customEventsListener]', customEventsListener());
-	initializeUiManager();
+	initializeUiManager(programs);
 	initializeRadioModal(getRadioList());
 })

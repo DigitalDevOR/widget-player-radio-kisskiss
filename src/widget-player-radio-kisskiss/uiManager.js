@@ -16,7 +16,6 @@
 
 import { handleProgramTitleChange, resetProgramsManager } from './programsManager';
 import { setCoverImageSmoothly } from './coverTransition';
-import kisskissPrograms from '../../data/kisskiss-programs.json';
 
 const DOM = {
 	mainCover: null,
@@ -56,7 +55,8 @@ function activateNotDefaultCta() {
 	if (DOM.liveText) DOM.liveText.textContent = '↩ Torna su Kiss Kiss';
 }
 
-export function initializeUiManager() {
+export function initializeUiManager(programs = []) {
+	const kisskissPrograms = programs;
 	DOM.init();
 
 	// Listener CTA: attivo sempre, agisce solo in not-default
@@ -131,7 +131,7 @@ export function initializeUiManager() {
 
 			handleProgramTitleChange(
 				{ show: showMetadati, trackInfo: trackMetadati },
-				kisskissPrograms
+				kisskissPrograms.length ? kisskissPrograms : []
 			);
 		}
 	});
